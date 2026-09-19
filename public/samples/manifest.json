@@ -1,0 +1,98 @@
+{
+  "author": "Alexander Holm",
+  "source": "https://archive.org/details/SalamanderDrumkit",
+  "license": "CC-BY-SA-3.0",
+  "modifications": "Trimmed leading silence (0.5 ms pre-attack), trailing silence; capped tails at 6 seconds; normalized peaks to 0.8; 0.3 ms attack / 15 ms tail fades; quantized 24-bit PCM to 16-bit PCM. Original sample rate and stereo channels preserved.",
+  "samples": [
+    {
+      "file": "kick-1.wav",
+      "original": "OH/kick_OH_FF_1.wav",
+      "sourceSha256": "f3c3272a7d0623b6d9b7cb028b08b5b3812c650fd22f4739e43e77e9faf69b28",
+      "sha256": "1efc0c3e24a93d1fdd2256b550568f5e38611cedd560e0d4f16e0249a858e52c",
+      "trimStartFrames": 672,
+      "frames": 21991,
+      "sampleRate": 48000
+    },
+    {
+      "file": "kick-2.wav",
+      "original": "OH/kick_OH_FF_2.wav",
+      "sourceSha256": "d7a5c50cdd03cf985b330397030dada2a4ce4350b6a6db43fa1b8a3db48c9a75",
+      "sha256": "56a21ca312562744d83c22335a8c153e20b1552e8d0f9ad541c618018f689936",
+      "trimStartFrames": 731,
+      "frames": 21811,
+      "sampleRate": 48000
+    },
+    {
+      "file": "snare-1.wav",
+      "original": "OH/snare_OH_FF_1.wav",
+      "sourceSha256": "4f30503ba0b27e702c75f027cfecdb49ec526ae31ea510f7bea71f98eaf9dc39",
+      "sha256": "4e9e841d69aac555744424ea6493a55f0265b6e3ed181138e8f546470fe46f08",
+      "trimStartFrames": 0,
+      "frames": 53996,
+      "sampleRate": 48000
+    },
+    {
+      "file": "snare-2.wav",
+      "original": "OH/snare_OH_FF_2.wav",
+      "sourceSha256": "4a4e1a3cd56d87e013cd93379e71e4ef9e8c8b781cbb0cd177f5f068b168bf29",
+      "sha256": "70c3c37f6b6efb48392a01e35c9e9884b38c4723bba67c0e18ec92400cb05d84",
+      "trimStartFrames": 96,
+      "frames": 46773,
+      "sampleRate": 48000
+    },
+    {
+      "file": "closed-hat.wav",
+      "original": "OH/hihatClosed_OH_F_1.wav",
+      "sourceSha256": "bd485de70450f68bb4692557a4ae909caaa965f5739693317365ebe85c986cbb",
+      "sha256": "bc4edbd960ff95f9eb7cd5f42b90326d559d574f3586d7265a694fa9ea895ae8",
+      "trimStartFrames": 60,
+      "frames": 23594,
+      "sampleRate": 48000
+    },
+    {
+      "file": "open-hat.wav",
+      "original": "OH/hihatOpen_OH_F_1.wav",
+      "sourceSha256": "7493fce31fb00093e4944f878a7fe802177a5c311e82725ac0ce7956e86f2fdc",
+      "sha256": "0bc94b6d86a853dd10fec4310ca007df10d4755c79a1f4f98bdd727d28afa3f6",
+      "trimStartFrames": 47,
+      "frames": 288001,
+      "sampleRate": 48000
+    },
+    {
+      "file": "crash.wav",
+      "original": "OH/crash1_OH_FF_1.wav",
+      "sourceSha256": "da28a2e9446c0e0a124f37ccf727db796f0d8575f63fbc923d16ad0143f1310c",
+      "sha256": "82c99c55543682031b1a2efbe7c613f0c71e951803b6add1100d416ee5ef4147",
+      "trimStartFrames": 168,
+      "frames": 288001,
+      "sampleRate": 48000
+    },
+    {
+      "file": "ride.wav",
+      "original": "OH/ride1_OH_FF_1.wav",
+      "sourceSha256": "5dbdf8cdecd62b83acfde4e268be6a52da0ca64ae145536004ffce3b1b7d6608",
+      "sha256": "48157588a79335c4d6e02a7537c8271673e94750891352d5eebac1b4d25bba1d",
+      "trimStartFrames": 437,
+      "frames": 288001,
+      "sampleRate": 48000
+    },
+    {
+      "file": "high-tom.wav",
+      "original": "OH/hiTom_OH_FF_1.wav",
+      "sourceSha256": "25d6092617cc798ba488b2d4843f1ea789324a795007ba405884c981f63f079e",
+      "sha256": "e8bf72a5b9e7e86d29c4a2a366835804f2c2eab8ab0938b1c8415f78fc120505",
+      "trimStartFrames": 283,
+      "frames": 99263,
+      "sampleRate": 48000
+    },
+    {
+      "file": "low-tom.wav",
+      "original": "OH/loTom_OH_FF_1.wav",
+      "sourceSha256": "bfb74d255554c2965bf012452bc3717dee88a44aa04d120f2a1b86b9b6a7082d",
+      "sha256": "d1f148c6c4a8e67bd765075e2a32661a6cfbdd02cf2ddd3cef235fc3f836d44f",
+      "trimStartFrames": 327,
+      "frames": 109969,
+      "sampleRate": 48000
+    }
+  ]
+}

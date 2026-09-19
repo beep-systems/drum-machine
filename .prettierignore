@@ -1,0 +1,9 @@
+node_modules
+dist
+.cache
+.idea
+test-results
+playwright-report
+package-lock.json
+public/samples/manifest.json
+public/samples/LICENSE.txt

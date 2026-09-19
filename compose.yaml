@@ -1,0 +1,6 @@
+services:
+  drum-machine:
+    build: .
+    ports:
+      - '${PORT:-8080}:8080'
+    restart: unless-stopped
