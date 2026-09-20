@@ -4,7 +4,8 @@
   "channels": 1,
   "bitsPerSample": 16,
   "peak": 0.8,
-  "processing": "Seeded noise, swept saturated sines and inharmonic partials; exponential decay; 0.5 ms attack and 15 ms end fade.",
+  "revision": 2,
+  "processing": "Seeded noise; driven decaying kick/tom bodies with harmonic punch and short noise attacks; saturated snare body and filtered noise; metallic cymbal sustain; 0.5 ms attack, 15 ms end fade; peak normalization to 0.8.",
   "samples": [
     {
       "file": "kick.wav",
@@ -12,7 +13,7 @@
       "frequency": 52,
       "frames": 31200,
       "sampleRate": 48000,
-      "sha256": "520b769cbcd5709bd9e3f6ac69e4d09e19dcf4d9c2dff97539a0dc8fc09d9585"
+      "sha256": "e4219742ca49f204d2e56e9696f29223073b8c5adfa3199fc02aabb608a3bd9d"
     },
     {
       "file": "snare.wav",
@@ -20,7 +21,7 @@
       "frequency": 185,
       "frames": 19200,
       "sampleRate": 48000,
-      "sha256": "62378f381a5d2b96126a14670b3620b9822a3fdfdcba86874d73fee3a47d1cc8"
+      "sha256": "5b86abc98579a40faf4e28b6aafcb35c5d53fb60a647b0ed0308cf84e80b919c"
     },
     {
       "file": "closed-hat.wav",
@@ -28,7 +29,7 @@
       "frequency": 6200,
       "frames": 5760,
       "sampleRate": 48000,
-      "sha256": "57606926631c1eaf594cb48995e817bf18dd967ad0f02202a84bed48f8efb08b"
+      "sha256": "c2a0163d8d175325d409444f89ce076aa3f6f57a54ccd3fe178c2c73c1ae448d"
     },
     {
       "file": "open-hat.wav",
@@ -36,7 +37,7 @@
       "frequency": 6200,
       "frames": 38400,
       "sampleRate": 48000,
-      "sha256": "b602b76033ffff38f70773ff2b33dada04bbe213773e22d8bc2545108d90ad46"
+      "sha256": "f9e0f782c5dcdcb26b95e7c987c8fc14b08a45c326e56f477ff99f539d0bbd59"
     },
     {
       "file": "crash.wav",
@@ -44,7 +45,7 @@
       "frequency": 3100,
       "frames": 115200,
       "sampleRate": 48000,
-      "sha256": "92ddfc522e93ce50ea3d302dc4e631f4b37ba4f939290e07bd62cc272835bb71"
+      "sha256": "f0ef172dfb3755a1461a83c625e2853175d9af923e549ade26a590270fb2f3e9"
     },
     {
       "file": "ride.wav",
@@ -52,7 +53,7 @@
       "frequency": 4300,
       "frames": 67200,
       "sampleRate": 48000,
-      "sha256": "959024a2f0b9bee5eab432a5e0395d783b4e489fd1bdcad089e5ab4fdce6f9d7"
+      "sha256": "89ddeceb965f915aa25ed7e10e959e64e161ddc0cc7848f5c15dd8c4772a5ca9"
     },
     {
       "file": "high-tom.wav",
@@ -60,7 +61,7 @@
       "frequency": 170,
       "frames": 24000,
       "sampleRate": 48000,
-      "sha256": "758d4c36ccd7bae687f5ee56ed97fb49cb6ffc0b6fdc27feb5feb881db3174e2"
+      "sha256": "87790f0754c095e5acdaa5d8573a8a92b69994e99a7c6276aae9a4c59f8f8f76"
     },
     {
       "file": "low-tom.wav",
@@ -68,7 +69,7 @@
       "frequency": 95,
       "frames": 33600,
       "sampleRate": 48000,
-      "sha256": "13779e91e4aca0713107bc89a4b8f8e480172d614e0bddf743b29ee9df20d271"
+      "sha256": "fdcfc03b2fa7400e257bcaaa7279cd52a0bef9c1617b636687d203540fd653a4"
     }
   ]
 }

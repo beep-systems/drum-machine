@@ -20,7 +20,8 @@ const samples = definitions.map(([name, duration, frequency], index) => {
   const seed = 0x1d057 + index
   let random = seed,
     phase = 0,
-    previousNoise = 0
+    previousNoise = 0,
+    snareNoise = 0
   const data = new Float64Array(Math.round(duration * rate))
   for (let i = 0; i < data.length; i++) {
     const t = i / rate
@@ -28,6 +29,7 @@ const samples = definitions.map(([name, duration, frequency], index) => {
     const noise = random / 2147483648 - 1
     const highNoise = (noise - previousNoise) * 0.5
     previousNoise = noise
+    snareNoise += 0.45 * (noise - snareNoise)
     const metal =
       [1, 1.483, 1.932, 2.546].reduce(
         (sum, ratio) => sum + Math.sin(2 * Math.PI * frequency * ratio * t),
@@ -35,13 +37,27 @@ const samples = definitions.map(([name, duration, frequency], index) => {
       ) / 4
     phase += (2 * Math.PI * (frequency + frequency * 2 * Math.exp(-t * 45))) / rate
     let value
-    if (name === 'kick' || name.endsWith('tom')) {
-      value =
-        Math.tanh(2.4 * Math.sin(phase)) * Math.exp((-t * 7) / duration) + 0.22 * noise * Math.exp(-t * 180)
+    if (name === 'kick') {
+      // Drive the decaying body, rather than just its oscillator, to retain
+      // weight behind the initial hit without increasing the normalized peak.
+      const body = Math.sin(phase) * Math.exp(-t * 14)
+      const punch = 0.24 * Math.sin(2 * phase) * Math.exp(-t * 35)
+      const attack = (0.32 * highNoise + 0.18 * Math.sin(2 * Math.PI * 2400 * t)) * Math.exp(-t * 190)
+      value = 0.86 * Math.tanh(4.2 * (body + punch)) + attack
+    } else if (name.endsWith('tom')) {
+      const body = (Math.sin(phase) + 0.16 * Math.sin(2.03 * phase)) * Math.exp((-t * 6) / duration)
+      value = 0.9 * Math.tanh(3.2 * body) + 0.16 * highNoise * Math.exp(-t * 120)
     } else if (name === 'snare') {
-      value = (0.65 * noise + 0.25 * Math.sin(phase) + 0.25 * metal) * Math.exp((-t * 7) / duration)
+      const body = (Math.sin(phase) + 0.35 * Math.sin(phase * 1.47)) * Math.exp(-t * 26)
+      const crack = (0.7 * highNoise + 0.3 * metal) * Math.exp(-t * 100)
+      value =
+        0.52 * Math.tanh(3.2 * body) + 0.68 * Math.tanh(3.5 * snareNoise) * Math.exp(-t * 16) + 0.36 * crack
     } else {
-      value = (0.55 * highNoise + 0.45 * metal) * Math.exp((-t * 6) / duration)
+      // More metallic sustain and a short noise attack, without driving the
+      // high-frequency partials into additional aliased harmonics.
+      value =
+        (0.42 * highNoise + 0.58 * metal) * Math.exp((-t * 4.8) / duration) +
+        0.16 * highNoise * Math.exp(-t * 100)
     }
     data[i] = value * Math.min(1, t / 0.0005) * Math.min(1, (data.length - 1 - i) / (rate * 0.015))
   }
@@ -79,8 +95,9 @@ writeFileSync(
       channels: 1,
       bitsPerSample: 16,
       peak: 0.8,
+      revision: 2,
       processing:
-        'Seeded noise, swept saturated sines and inharmonic partials; exponential decay; 0.5 ms attack and 15 ms end fade.',
+        'Seeded noise; driven decaying kick/tom bodies with harmonic punch and short noise attacks; saturated snare body and filtered noise; metallic cymbal sustain; 0.5 ms attack, 15 ms end fade; peak normalization to 0.8.',
       samples,
     },
     null,

@@ -16,8 +16,11 @@ assets. Builds do not generate or download audio. Output is mono 48 kHz,
 noise, an exponential decay, a 0.5 ms attack and a 15 ms end fade.
 The manifest records each seed, base frequency, frame count and SHA-256.
 
-Kick and toms use saturated descending sine sweeps with a noise transient.
-Snare combines noise, a pitched body and inharmonic partials. Hats and cymbals
-combine high-pass noise and inharmonic partials with different decay lengths.
+Revision 2 gives kick and toms denser, driven decaying bodies, harmonic punch
+and short attack transients. The kick retains a 52 Hz fundamental. Snare layers
+a saturated pitched body, filtered saturated noise and a short metallic crack.
+Hats and cymbals combine high-pass noise and inharmonic partials with stronger
+metallic sustain, without additional high-frequency distortion. Peak level
+remains 0.8; the increased weight comes from the envelopes and harmonic content.
 These sounds are an original Industrial palette, not emulations of a named
 commercial drum machine.
