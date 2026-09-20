@@ -15,6 +15,19 @@ export function useI18n() {
     document.documentElement.lang = locale
     document.title = text.pageTitle
     document.querySelector('meta[name="description"]')?.setAttribute('content', text.pageDescription)
+    for (const key of ['og:title', 'twitter:title']) {
+      document
+        .querySelector(`meta[property="${key}"], meta[name="${key}"]`)
+        ?.setAttribute('content', text.pageTitle)
+    }
+    for (const key of ['og:description', 'twitter:description']) {
+      document
+        .querySelector(`meta[property="${key}"], meta[name="${key}"]`)
+        ?.setAttribute('content', text.pageDescription)
+    }
+    document
+      .querySelector('meta[property="og:locale"]')
+      ?.setAttribute('content', { en: 'en_US', de: 'de_DE', ru: 'ru_RU' }[locale])
   }, [locale, text])
 
   function setLocale(next: Locale) {

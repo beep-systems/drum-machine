@@ -140,3 +140,19 @@ and the CC0 dedication. No sample generation or downloads occur during builds.
 Changing the kit, tempo or rhythm during count-in cancels the pending start and
 restarts count-in after the new audio is ready. This prevents stale audio from
 starting while another kit is loading.
+
+# Search discovery
+
+Vite generates the initial English title, description, Open Graph and Twitter
+metadata, canonical URL and WebApplication JSON-LD from the bundled dictionary.
+The initial HTML also includes a readable practice guide without JavaScript;
+React replaces it with the interactive app and the same translated guide.
+Language changes update page and sharing metadata without changing the URL.
+There are no separate language URLs, so no hreflang alternates are advertised.
+
+The canonical production URL is `https://drum.beep.systems/`. If the public domain
+changes, update `vite.config.ts`, `public/robots.txt`, `public/sitemap.xml` and the
+SEO preview tests together. LAN copies retain the production canonical URL.
+After deployment, the site owner can submit `/sitemap.xml` in Google Search
+Console and inspect the homepage. No deployment or submission happens at build
+time. Run `npm run build` and `npm run test:preview` to verify the generated HTML.

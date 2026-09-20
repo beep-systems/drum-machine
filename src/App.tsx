@@ -23,6 +23,7 @@ import { exportLibrary, importLibrary, restoreState, saveState } from './storage
 import { AppError, problemOf, type Notice, type Problem } from './messages'
 import { isLocale, languages, messageText, presetText } from './i18n'
 import { useI18n } from './i18n/useI18n'
+import { PracticeGuide } from './PracticeGuide'
 
 const PRESET_CATEGORIES: Array<PresetCategory | 'all'> = [
   'all',
@@ -750,6 +751,7 @@ export function App() {
         </p>
       </section>
 
+      <PracticeGuide text={text} />
       <footer className="footer">
         <span className="footer-brand">
           DRUM MACHINE <span>/</span> {text.footer}

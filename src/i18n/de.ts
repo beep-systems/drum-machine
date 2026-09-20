@@ -4,8 +4,17 @@ export const de: Dictionary = {
   kitLabel: 'Schlagzeugset',
   kits: { acoustic: 'Akustisch', industrial: 'Industrial' },
   language: 'Sprache',
-  pageTitle: 'Drum Machine — Dein Übungspartner',
-  pageDescription: 'Akustisches Schlagzeug zum Gitarreüben. Rock, Hardrock und Metal im Browser.',
+  pageTitle: 'Online Drum Machine zum Gitarreüben | Rock & Metal',
+  pageDescription:
+    'Kostenlose Online Drum Machine zum Gitarreüben: Rock, Hardrock und Metal, 40–300 BPM, 32 Schritte und eigene Rhythmen speichern. Ohne Anmeldung.',
+  guideHeading: 'Gitarre üben mit der Online Drum Machine',
+  guideDescription:
+    'Erstelle Begleitrhythmen für Rock, Hardrock und Metal mit acht Schlagzeuginstrumenten, akustischen Aufnahmen und einem Industrial-Kit. Der Sequenzer bietet 32 Schritte über zwei Takte im 4/4-Takt und ein Tempo von 40 bis 300 BPM.',
+  guideChoose: 'Wähle einen Rhythmus und ein Schlagzeugset und stelle ein angenehmes Übungstempo ein.',
+  guidePlay:
+    'Drücke Start. Nutze den optionalen Einzähler, bearbeite Schritte und Akzente und regle die Lautstärke einzelner Instrumente oder schalte sie stumm.',
+  guideSave:
+    'Speichere eigene Rhythmen in diesem Browser. Exportiere deine Bibliothek als JSON zur Sicherung oder zum Import auf einem anderen Gerät. Ein Konto ist nicht erforderlich.',
   home: 'Drum Machine — Startseite',
   output: 'Ton auf diesem Gerät',
   tagline: 'DEIN ÜBUNGSPARTNER',

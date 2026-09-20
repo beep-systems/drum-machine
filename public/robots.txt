@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://drum.beep.systems/sitemap.xml

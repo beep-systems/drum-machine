@@ -2,8 +2,17 @@ export const en = {
   kitLabel: 'Drum kit',
   kits: { acoustic: 'Acoustic', industrial: 'Industrial' },
   language: 'Language',
-  pageTitle: 'Drum Machine — Your practice partner',
-  pageDescription: 'Acoustic drums for guitar practice. Rock, hard rock and metal in your browser.',
+  pageTitle: 'Online Drum Machine for Guitar Practice | Rock & Metal',
+  pageDescription:
+    'Free online drum machine for guitar practice. Play rock, hard rock and metal beats, adjust 40–300 BPM, edit 32 steps and save your rhythms. No sign-up.',
+  guideHeading: 'How to practise guitar with the online drum machine',
+  guideDescription:
+    'Build backing beats for rock, hard rock and metal with eight drum instruments, acoustic recordings and an Industrial kit. The 32-step sequencer covers two bars of 4/4, with adjustable tempo from 40 to 300 BPM.',
+  guideChoose: 'Choose a preset rhythm and a drum kit, then set a comfortable practice tempo.',
+  guidePlay:
+    'Press Play to start. Use the optional count-in, edit steps and accents, and adjust each instrument’s volume or mute it.',
+  guideSave:
+    'Save your own rhythms in this browser and export your library as JSON to back it up or import it on another device. No account is required.',
   home: 'Drum Machine — home',
   output: 'Sound on this device',
   tagline: 'YOUR PRACTICE PARTNER',
