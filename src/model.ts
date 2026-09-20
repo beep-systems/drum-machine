@@ -228,11 +228,11 @@ const EXTRA_PRESETS: Preset[] = [
 
 export const PRESETS: Preset[] = [...BASE_PRESETS, ...EXTRA_PRESETS]
 
-export function initialState(): AppState {
+export function initialState(patternName = PRESETS[0].pattern.name): AppState {
   return {
     version: 1,
     session: {
-      pattern: structuredClone(PRESETS[0].pattern),
+      pattern: { ...structuredClone(PRESETS[0].pattern), name: patternName },
       bpm: 100,
       master: 0.65,
       countIn: true,

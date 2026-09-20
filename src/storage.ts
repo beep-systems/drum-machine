@@ -7,6 +7,7 @@ import {
   type SavedPattern,
   type Session,
 } from './model'
+import { AppError, type Problem } from './messages'
 
 export const STORAGE_KEY = 'drum-machine:v1'
 const object = (v: unknown): v is Record<string, unknown> =>
@@ -61,19 +62,21 @@ function isSession(v: unknown): v is Session {
   })
 }
 
-export function restoreState(storage: Pick<Storage, 'getItem'>): { state: AppState; warning: string } {
+export function restoreState(
+  storage: Pick<Storage, 'getItem'>,
+  createInitial: () => AppState = initialState,
+): { state: AppState; warning: Problem | null } {
   try {
     const raw = storage.getItem(STORAGE_KEY)
-    if (raw === null) return { state: initialState(), warning: '' }
+    if (raw === null) return { state: createInitial(), warning: null }
     const parsed: unknown = JSON.parse(raw)
     if (!object(parsed) || parsed.version !== 1 || !isSession(parsed.session) || !isLibrary(parsed.library))
       throw new Error('invalid')
-    return { state: { version: 1, session: parsed.session, library: parsed.library }, warning: '' }
+    return { state: { version: 1, session: parsed.session, library: parsed.library }, warning: null }
   } catch {
     return {
-      state: initialState(),
-      warning:
-        'Не удалось восстановить настройки. Автосохранение отключено, исходные данные сохранены в браузере. Можно продолжать и экспортировать ритмы в файл.',
+      state: createInitial(),
+      warning: { code: 'storageRestore' },
     }
   }
 }
@@ -91,12 +94,12 @@ export function exportLibrary(library: SavedPattern[]): string {
   return JSON.stringify({ version: 1, kind: 'drum-machine-library', patterns: library }, null, 2)
 }
 export function importLibrary(raw: string, existing: SavedPattern[]): SavedPattern[] {
-  if (raw.length > 1_000_000) throw new Error('Файл слишком большой: максимум 1 МБ.')
+  if (raw.length > 1_000_000) throw new AppError({ code: 'fileTooLarge' })
   let parsed: unknown
   try {
     parsed = JSON.parse(raw)
   } catch {
-    throw new Error('Не удалось прочитать JSON. Библиотека не изменена.')
+    throw new AppError({ code: 'invalidJson' })
   }
   if (
     !object(parsed) ||
@@ -104,13 +107,12 @@ export function importLibrary(raw: string, existing: SavedPattern[]): SavedPatte
     parsed.kind !== 'drum-machine-library' ||
     !isLibrary(parsed.patterns)
   )
-    throw new Error('Неверный формат библиотеки или неподдерживаемая версия. Библиотека не изменена.')
+    throw new AppError({ code: 'invalidLibrary' })
   // Import adds copies; it never silently overwrites a locally edited pattern.
   const additions = parsed.patterns.filter(
     (p) => !existing.some((e) => JSON.stringify(e.pattern) === JSON.stringify(p.pattern) && e.bpm === p.bpm),
   )
-  if (existing.length + additions.length > 128)
-    throw new Error('В библиотеке может быть не больше 128 ритмов.')
+  if (existing.length + additions.length > 128) throw new AppError({ code: 'libraryFull' })
   const ids = new Set(existing.map((p) => p.id))
   const result = [...existing]
   for (const item of additions) {

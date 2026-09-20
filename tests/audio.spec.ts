@@ -1,5 +1,9 @@
 import { expect, test } from '@playwright/test'
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('drum-machine:locale', 'ru'))
+})
+
 test('real offline rendering preserves sample pitch, round robin, tails and hat choke', async ({ page }) => {
   await page.goto('/')
   const result = await page.evaluate(async () => {

@@ -20,14 +20,17 @@ import {
   type TrackId,
 } from './model'
 import { exportLibrary, importLibrary, restoreState, saveState } from './storage'
+import { AppError, problemOf, type Notice, type Problem } from './messages'
+import { isLocale, languages, messageText, presetText } from './i18n'
+import { useI18n } from './i18n/useI18n'
 
-const PRESET_CATEGORIES: Array<{ id: PresetCategory | 'all'; label: string }> = [
-  { id: 'all', label: '\u0412\u0441\u0435' },
-  { id: 'basic', label: '\u0411\u0430\u0437\u043e\u0432\u044b\u0435' },
-  { id: 'rock', label: '\u0420\u043e\u043a' },
-  { id: 'hard-rock', label: '\u0425\u0430\u0440\u0434-\u0440\u043e\u043a' },
-  { id: 'metal', label: '\u041c\u0435\u0442\u0430\u043b' },
-  { id: 'songs', label: '\u0412 \u0441\u0442\u0438\u043b\u0435 \u043f\u0435\u0441\u0435\u043d' },
+const PRESET_CATEGORIES: Array<PresetCategory | 'all'> = [
+  'all',
+  'basic',
+  'rock',
+  'hard-rock',
+  'metal',
+  'songs',
 ]
 
 function Icon({
@@ -91,19 +94,20 @@ function Icon({
   )
 }
 
-function readInitial() {
+function readInitial(patternName: string): { state: AppState; warning: Problem | null } {
   try {
-    return restoreState(window.localStorage)
+    return restoreState(window.localStorage, () => initialState(patternName))
   } catch {
     return {
-      state: initialState(),
-      warning: 'Хранилище браузера недоступно. Настройки не сохраняются; используй экспорт ритмов.',
+      state: initialState(patternName),
+      warning: { code: 'storageUnavailable' },
     }
   }
 }
 
 export function App() {
-  const [boot] = useState(readInitial)
+  const { locale, setLocale, text } = useI18n()
+  const [boot] = useState(() => readInitial(presetText(text, PRESETS[0].id).name))
   const [state, setState] = useState<AppState>(boot.state)
   const stateRef = useRef(state)
   stateRef.current = state
@@ -111,7 +115,7 @@ export function App() {
   const sound = useSyncExternalStore(engine.subscribe, engine.getSnapshot)
   const [position, setPosition] = useState({ step: -1, beat: 0, bpm: state.session.bpm })
   const [warning, setWarning] = useState(boot.warning)
-  const [notice, setNotice] = useState('')
+  const [notice, setNotice] = useState<Notice | null>(null)
   const [saveName, setSaveName] = useState('')
   const [focusedCell, setFocusedCell] = useState(0)
   const [presetCategory, setPresetCategory] = useState<PresetCategory | 'all'>('all')
@@ -134,10 +138,10 @@ export function App() {
       setTempoText(String(bpm))
     }
   }
-  function selectPattern(saved: SavedPattern) {
-    changeSession({ pattern: structuredClone(saved.pattern), bpm: saved.bpm })
+  function selectPattern(saved: SavedPattern, name = saved.pattern.name) {
+    changeSession({ pattern: { ...structuredClone(saved.pattern), name }, bpm: saved.bpm })
     setTempoText(String(saved.bpm))
-    setNotice('')
+    setNotice(null)
   }
   function toggle() {
     if (busy) engine.stop()
@@ -148,13 +152,10 @@ export function App() {
     if (boot.warning) return
     const timer = window.setTimeout(() => {
       try {
-        if (!saveState(window.localStorage, state))
-          setWarning(
-            'Настройки не сохраняются: хранилище браузера недоступно или заполнено. Экспортируй ритмы в файл.',
-          )
-        else setWarning('')
+        if (!saveState(window.localStorage, state)) setWarning({ code: 'storageWrite' })
+        else setWarning(null)
       } catch {
-        setWarning('Хранилище недоступно. Экспортируй ритмы, чтобы не потерять изменения.')
+        setWarning({ code: 'storageWrite' })
       }
     }, 250)
     return () => clearTimeout(timer)
@@ -231,11 +232,11 @@ export function App() {
   function savePattern() {
     const name = saveName.trim()
     if (!name) {
-      setNotice('Дай ритму имя перед сохранением.')
+      setNotice({ code: 'nameRequired' })
       return
     }
     if (state.library.length >= 128) {
-      setNotice('Библиотека заполнена: максимум 128 ритмов.')
+      setNotice({ code: 'libraryFull' })
       return
     }
     const pattern = { ...structuredClone(session.pattern), name }
@@ -247,7 +248,7 @@ export function App() {
       session: { ...old.session, pattern },
     }))
     setSaveName('')
-    setNotice(`«${name}» сохранён в библиотеке.`)
+    setNotice({ code: 'saved', name })
   }
   function download() {
     const blob = new Blob([exportLibrary(state.library)], { type: 'application/json' })
@@ -261,33 +262,33 @@ export function App() {
   async function upload(file: File | undefined) {
     if (!file) return
     try {
-      if (file.size > 1_000_000) throw new Error('Файл слишком большой: максимум 1 МБ.')
+      if (file.size > 1_000_000) throw new AppError({ code: 'fileTooLarge' })
       const raw = await file.text()
       const library = importLibrary(raw, stateRef.current.library)
       setState((old) => ({ ...old, library }))
-      setNotice('Библиотека импортирована. Одинаковые ритмы не дублируются.')
+      setNotice({ code: 'imported' })
     } catch (error) {
-      setNotice((error as Error).message)
+      setNotice(problemOf(error, { code: 'fileRead' }))
     }
     if (fileInput.current) fileInput.current.value = ''
   }
   const statusText =
     sound.status === 'loading'
-      ? 'Загружаем установку…'
+      ? text.loading
       : sound.status === 'rendering'
-        ? 'Готовим ритм…'
+        ? text.rendering
         : sound.status === 'countin'
-          ? `Приготовься · ${position.beat || 1} / 4`
+          ? text.countStatus(position.beat || 1)
           : sound.status === 'playing'
-            ? 'Держим ритм'
+            ? text.playing
             : sound.status === 'error'
-              ? 'Нужен повторный запуск'
-              : 'Готов к репетиции'
+              ? text.errorStatus
+              : text.idle
 
   return (
     <main className="app">
       <header className="topbar">
-        <a className="brand" href="#" aria-label="Drum Machine — главная">
+        <a className="brand" href="#" aria-label={text.home}>
           <span className="brand-mark" aria-hidden="true">
             <i />
             <i />
@@ -298,21 +299,36 @@ export function App() {
           <span className="version">01</span>
         </a>
         <span className="output-label">
-          <span className="status-dot" /> Звук на этом устройстве
+          <span className="status-dot" /> {text.output}
         </span>
+        <label className="language-picker">
+          <span>{text.language}</span>
+          <select
+            value={locale}
+            onChange={(event) => {
+              if (isLocale(event.target.value)) setLocale(event.target.value)
+            }}
+          >
+            {Object.entries(languages).map(([code, name]) => (
+              <option key={code} value={code} lang={code}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
       </header>
 
       <section className="intro">
         <div>
-          <p className="eyebrow">ТВОЙ НАПАРНИК ПО РЕПЕТИЦИИ</p>
+          <p className="eyebrow">{text.tagline}</p>
           <h1>
-            Включай ритм.
+            {text.headline}
             <br />
-            <span>Играй громче.</span>
+            <span>{text.headlineAccent}</span>
           </h1>
           <p className="intro-copy">
-            Живые ударные для твоих риффов.
-            <br className="mobile-only" /> От первого аккорда до двойной бочки.
+            {text.intro}
+            <br className="mobile-only" /> {text.introMore}
           </p>
         </div>
         <div className="intro-art" aria-hidden="true">
@@ -320,31 +336,31 @@ export function App() {
           <div className="art-ring ring-two" />
           <div className="art-stick stick-one" />
           <div className="art-stick stick-two" />
-          <span className="art-label">ACOUSTIC KIT / VOL. 01</span>
+          <span className="art-label">{text.kit}</span>
           <span className="art-cross">+</span>
         </div>
       </section>
 
-      <section className="transport panel" aria-label="Управление воспроизведением">
+      <section className="transport panel" aria-label={text.transport}>
         <div className="play-section">
           <button
             className={`play-button ${busy ? 'is-playing' : ''}`}
             onClick={toggle}
-            aria-label={busy ? 'Стоп' : 'Играть'}
+            aria-label={busy ? text.stop : text.play}
           >
             <Icon name={busy ? 'stop' : 'play'} size={25} />
-            {busy ? 'Стоп' : 'Играть'}
+            {busy ? text.stop : text.play}
           </button>
           <span className="key-hint">
-            <kbd>пробел</kbd> старт / стоп
+            <kbd>{text.space}</kbd> {text.startStop}
           </span>
         </div>
         <div className="tempo-section">
           <label className="control-label" htmlFor="tempo">
-            ТЕМП
+            {text.tempo}
           </label>
           <div className="tempo-value">
-            <button className="adjust" aria-label="Уменьшить темп" onClick={() => setBpm(session.bpm - 1)}>
+            <button className="adjust" aria-label={text.tempoDown} onClick={() => setBpm(session.bpm - 1)}>
               −
             </button>
             <input
@@ -364,12 +380,12 @@ export function App() {
               }}
             />
             <span>BPM</span>
-            <button className="adjust" aria-label="Увеличить темп" onClick={() => setBpm(session.bpm + 1)}>
+            <button className="adjust" aria-label={text.tempoUp} onClick={() => setBpm(session.bpm + 1)}>
               +
             </button>
           </div>
           <input
-            aria-label="Темп"
+            aria-label={text.tempo}
             className="tempo-slider"
             type="range"
             min="40"
@@ -380,7 +396,7 @@ export function App() {
         </div>
         <div className="volume-section">
           <label className="control-label" htmlFor="master">
-            ГРОМКОСТЬ <span>{Math.round(session.master * 100)}%</span>
+            {text.volume} <span>{Math.round(session.master * 100)}%</span>
           </label>
           <div className="volume-control">
             <Icon name={session.master === 0 ? 'mute' : 'sound'} />
@@ -400,7 +416,7 @@ export function App() {
               onChange={(e) => changeSession({ countIn: e.target.checked })}
             />
             <span className="toggle-switch" />
-            Отсчёт перед стартом <span className="subtle">1 такт</span>
+            {text.countIn} <span className="subtle">{text.oneBar}</span>
           </label>
         </div>
         <div className="transport-status">
@@ -422,56 +438,57 @@ export function App() {
           </div>
           <span role="status">{statusText}</span>
           <span className="timing-label">
-            4/4 <b>·</b> 2 такта <b>·</b> 1/16
+            4/4 <b>·</b> {text.twoBars} <b>·</b> 1/16
           </span>
         </div>
       </section>
       {sound.error && (
         <div className="alert error" role="alert">
-          {sound.error}
+          {messageText(text, sound.error)}
         </div>
       )}
       {warning && (
         <div className="alert" role="alert">
-          {warning}
+          {messageText(text, warning)}
         </div>
       )}
 
       <section className="presets-section" aria-labelledby="presets-heading">
         <div className="section-heading">
           <h2 id="presets-heading">
-            <span className="section-number">01</span> Начни с ритма
+            <span className="section-number">01</span> {text.presetsHeading}
           </h2>
-          <span className="section-note">Выбери характер. Темп — за тобой.</span>
+          <span className="section-note">{text.presetsNote}</span>
         </div>
-        <div className="preset-filters" role="group" aria-label="Preset categories">
+        <div className="preset-filters" role="group" aria-label={text.categoriesLabel}>
           {PRESET_CATEGORIES.map((category) => (
             <button
-              key={category.id}
-              className={`preset-filter ${presetCategory === category.id ? 'selected' : ''}`}
-              onClick={() => setPresetCategory(category.id)}
-              aria-pressed={presetCategory === category.id}
+              key={category}
+              className={`preset-filter ${presetCategory === category ? 'selected' : ''}`}
+              onClick={() => setPresetCategory(category)}
+              aria-pressed={presetCategory === category}
             >
-              {category.label}
+              {text.categories[category]}
             </button>
           ))}
         </div>
         <div className="presets">
           {visiblePresets.map((preset, i) => {
+            const info = presetText(text, preset.id)
             const selected = JSON.stringify(preset.pattern.tracks) === JSON.stringify(session.pattern.tracks)
             return (
               <button
                 key={preset.id}
                 className={`preset ${selected ? 'selected' : ''}`}
-                onClick={() => selectPattern(preset)}
+                onClick={() => selectPattern(preset, info.name)}
                 aria-pressed={selected}
               >
                 <span className="preset-top">
                   <span>{String(i + 1).padStart(2, '0')}</span>
                   <span>{preset.bpm} BPM</span>
                 </span>
-                <strong>{preset.pattern.name}</strong>
-                {preset.description && <small className="preset-description">{preset.description}</small>}
+                <strong>{info.name}</strong>
+                {info.description && <small className="preset-description">{info.description}</small>}
                 <span className="mini-pattern" aria-hidden="true">
                   {Array.from({ length: 16 }, (_, s) => (
                     <i
@@ -491,35 +508,35 @@ export function App() {
       <section className="editor panel" aria-labelledby="editor-heading">
         <div className="editor-header">
           <div>
-            <p className="eyebrow">ШАГОВЫЙ СЕКВЕНСОР</p>
+            <p className="eyebrow">{text.sequencer}</p>
             <h2 id="editor-heading">{session.pattern.name}</h2>
           </div>
           <div className="editor-actions">
             {sound.pending && (
               <span className="pending" role="status">
-                Изменения со следующего цикла
+                {text.pending}
               </span>
             )}
             <button
               className="text-button"
-              onClick={() => changeSession({ pattern: emptyPattern('Новый ритм') })}
+              onClick={() => changeSession({ pattern: emptyPattern(text.newPattern) })}
             >
               <Icon name="trash" size={16} />
-              Очистить сетку
+              {text.clear}
             </button>
           </div>
         </div>
         <div className="grid-scroll" ref={grid}>
           <div className="sequencer">
             <div className="grid-header">
-              <span className="track-caption">ИНСТРУМЕНТ / МИКШЕР</span>
+              <span className="track-caption">{text.instrumentMixer}</span>
               <div className="bar-labels">
-                <span>ТАКТ 1</span>
-                <span>ТАКТ 2</span>
+                <span>{text.bar(1)}</span>
+                <span>{text.bar(2)}</span>
               </div>
             </div>
             <div className="grid-header counts">
-              <span className="track-caption">Нажми на имя, чтобы послушать</span>
+              <span className="track-caption">{text.previewHint}</span>
               <div className="steps">
                 {Array.from({ length: 32 }, (_, step) => (
                   <span
@@ -541,15 +558,15 @@ export function App() {
                   <button
                     className="instrument"
                     onClick={() => void engine.preview(track.id)}
-                    aria-label={`Прослушать: ${track.name}`}
+                    aria-label={text.previewTrack(text.tracks[track.id])}
                   >
                     <span className="instrument-code">{track.short}</span>
-                    <span>{track.name}</span>
+                    <span>{text.tracks[track.id]}</span>
                   </button>
                   <div className="track-mix">
                     <button
                       className={`mute-button ${session.mixer[track.id].muted ? 'on' : ''}`}
-                      aria-label={`Выключить: ${track.name}`}
+                      aria-label={text.muteTrack(text.tracks[track.id])}
                       aria-pressed={session.mixer[track.id].muted}
                       onClick={() =>
                         changeSession({
@@ -563,7 +580,7 @@ export function App() {
                       {session.mixer[track.id].muted ? 'M' : <Icon name="sound" size={13} />}
                     </button>
                     <input
-                      aria-label={`Громкость: ${track.name}`}
+                      aria-label={text.trackVolume(text.tracks[track.id])}
                       type="range"
                       min="0"
                       max="100"
@@ -585,7 +602,12 @@ export function App() {
                       key={step}
                       data-cell={row * 32 + step}
                       data-value={value}
-                      aria-label={`${track.name}: такт ${Math.floor(step / 16) + 1}, шаг ${(step % 16) + 1}${value === 2 ? ', акцент' : ''}`}
+                      aria-label={text.stepLabel(
+                        text.tracks[track.id],
+                        Math.floor(step / 16) + 1,
+                        (step % 16) + 1,
+                        value === 2,
+                      )}
                       aria-pressed={value > 0}
                       tabIndex={focusedCell === row * 32 + step ? 0 : -1}
                       onFocus={() => setFocusedCell(row * 32 + step)}
@@ -604,14 +626,14 @@ export function App() {
         <div className="editor-footer">
           <div className="legend">
             <span>
-              <i className="legend-hit" /> Удар
+              <i className="legend-hit" /> {text.hit}
             </span>
             <span>
-              <i className="legend-accent" /> Акцент
+              <i className="legend-accent" /> {text.accent}
             </span>
           </div>
           <span>
-            Клик — удар <b>·</b> Shift + клик — акцент <b>·</b> Стрелки — навигация
+            {text.clickHint} <b>·</b> {text.accentHint} <b>·</b> {text.arrowHint}
           </span>
         </div>
       </section>
@@ -619,26 +641,26 @@ export function App() {
       <section className="library panel" aria-labelledby="library-heading">
         <div className="library-heading">
           <div>
-            <p className="eyebrow">СОХРАНИ СВОЙ ЗВУК</p>
+            <p className="eyebrow">{text.libraryTagline}</p>
             <h2 id="library-heading">
-              Мои ритмы <span className="library-count">{state.library.length}</span>
+              {text.libraryHeading} <span className="library-count">{state.library.length}</span>
             </h2>
           </div>
           <div className="library-tools">
             <button className="text-button" onClick={() => fileInput.current?.click()}>
               <Icon name="upload" size={16} />
-              Импорт
+              {text.import}
             </button>
             <button className="text-button" onClick={download} disabled={!state.library.length}>
               <Icon name="download" size={16} />
-              Экспорт
+              {text.export}
             </button>
             <input
               ref={fileInput}
               className="hidden-input"
               type="file"
               accept="application/json,.json"
-              aria-label="Импорт библиотеки"
+              aria-label={text.importLabel}
               onChange={(e) => void upload(e.target.files?.[0])}
             />
           </div>
@@ -651,15 +673,15 @@ export function App() {
           }}
         >
           <input
-            aria-label="Название ритма"
-            placeholder="Например, рифф в ми миноре"
+            aria-label={text.patternName}
+            placeholder={text.namePlaceholder}
             maxLength={60}
             value={saveName}
             onChange={(e) => setSaveName(e.target.value)}
           />
           <button className="secondary-button" type="submit">
             <Icon name="save" size={17} />
-            Сохранить ритм
+            {text.save}
           </button>
         </form>
         {state.library.length ? (
@@ -673,10 +695,10 @@ export function App() {
                 </button>
                 <button
                   className="delete-saved"
-                  aria-label={`Удалить ритм: ${item.pattern.name}`}
+                  aria-label={text.deleteLabel(item.pattern.name)}
                   onClick={() => {
                     setState((old) => ({ ...old, library: old.library.filter((p) => p.id !== item.id) }))
-                    setNotice(`Ритм «${item.pattern.name}» удалён из библиотеки.`)
+                    setNotice({ code: 'deleted', name: item.pattern.name })
                   }}
                 >
                   <Icon name="trash" size={16} />
@@ -685,21 +707,19 @@ export function App() {
             ))}
           </div>
         ) : (
-          <p className="empty-library">
-            Здесь будут твои ритмы. Сохрани первый — и возвращайся к нему на следующей репетиции.
-          </p>
+          <p className="empty-library">{text.emptyLibrary}</p>
         )}
         <p className={`library-notice ${notice ? 'visible' : ''}`} role="status">
-          {notice || 'Настройки автоматически сохраняются в этом браузере.'}
+          {notice ? messageText(text, notice) : text.autosave}
         </p>
       </section>
 
       <footer className="footer">
         <span className="footer-brand">
-          DRUM MACHINE <span>/</span> СДЕЛАНО ДЛЯ ПРАКТИКИ
+          DRUM MACHINE <span>/</span> {text.footer}
         </span>
         <span>
-          Сэмплы:{' '}
+          {text.samples}{' '}
           <a href="/samples/README.md" target="_blank" rel="noreferrer">
             Salamander · CC BY-SA 3.0
           </a>
@@ -707,7 +727,7 @@ export function App() {
       </footer>
       {preparing && (
         <span className="sr-only" role="status">
-          Подготовка аудио. Кнопка «Стоп» отменяет запуск.
+          {text.preparing}
         </span>
       )}
     </main>

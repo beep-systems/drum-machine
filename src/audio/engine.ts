@@ -1,9 +1,10 @@
 import { TRACKS, type Mixer, type Pattern, type TrackId } from '../model'
 import { audioSignature, nextBoundary, type SampleBank } from './timing'
 import { renderLoop, type RenderedLoop } from './render'
+import { AppError, problemOf, type Problem } from '../messages'
 
 export type EngineStatus = 'idle' | 'loading' | 'rendering' | 'countin' | 'playing' | 'error'
-export type EngineSnapshot = { status: EngineStatus; pending: boolean; error: string }
+export type EngineSnapshot = { status: EngineStatus; pending: boolean; error: Problem | null }
 type Group = {
   sources: AudioBufferSourceNode[]
   gates: GainNode[]
@@ -26,9 +27,19 @@ async function loadSamples(ctx: AudioContext): Promise<SampleBank> {
           track.id,
           await Promise.all(
             track.samples.map(async (name) => {
-              const response = await fetch(`/samples/${name}.wav`, { signal: AbortSignal.timeout(20_000) })
-              if (!response.ok) throw new Error(`Не загружен сэмпл ${name}.`)
-              return ctx.decodeAudioData(await response.arrayBuffer())
+              let data: ArrayBuffer
+              try {
+                const response = await fetch(`/samples/${name}.wav`, { signal: AbortSignal.timeout(20_000) })
+                if (!response.ok) throw new Error(`HTTP ${response.status}`)
+                data = await response.arrayBuffer()
+              } catch {
+                throw new AppError({ code: 'sampleLoad', sample: name })
+              }
+              try {
+                return await ctx.decodeAudioData(data)
+              } catch {
+                throw new AppError({ code: 'sampleDecode', sample: name })
+              }
             }),
           ),
         ] as const,
@@ -56,7 +67,7 @@ export class DrumEngine {
   private mix?: Mixer
   private volume = 0.65
   private listeners = new Set<() => void>()
-  private snapshot: EngineSnapshot = { status: 'idle', pending: false, error: '' }
+  private snapshot: EngineSnapshot = { status: 'idle', pending: false, error: null }
   private deps: Required<EngineDependencies>
 
   constructor(deps: EngineDependencies = {}) {
@@ -98,7 +109,7 @@ export class DrumEngine {
           this.stop()
           this.emit({
             status: 'error',
-            error: 'Браузер приостановил звук. Нажми «Играть», чтобы продолжить.',
+            error: { code: 'audioSuspended' },
           })
         }
       }
@@ -134,7 +145,7 @@ export class DrumEngine {
     const run = ++this.run
     this.wanted = true
     this.desired = { pattern: structuredClone(pattern), bpm, signature: audioSignature(pattern, bpm) }
-    this.emit({ status: 'loading', error: '', pending: false })
+    this.emit({ status: 'loading', error: null, pending: false })
     try {
       const ctx = this.context()
       await ctx.resume()
@@ -291,13 +302,13 @@ export class DrumEngine {
     this.oneShots.clear()
     this.active = undefined
     this.queued = undefined
-    this.emit({ status: 'idle', pending: false, error: '' })
+    this.emit({ status: 'idle', pending: false, error: null })
   }
   private fail(error: unknown) {
     this.stop()
     this.emit({
       status: 'error',
-      error: `${error instanceof Error ? error.message : 'Не удалось подготовить звук.'} Нажми «Играть», чтобы повторить.`,
+      error: problemOf(error, { code: 'audioFailed' }),
     })
   }
   async preview(track: TrackId) {

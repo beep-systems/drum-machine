@@ -1,16 +1,16 @@
-# Salamander Drumkit — выборка для Drum Machine
+# Salamander Drumkit — Drum Machine selection
 
-Автор оригинальной установки и записей: **Alexander Holm**.
+Original drum kit and recordings by **Alexander Holm**.
 
-- Источник: https://archive.org/details/SalamanderDrumkit
-- Описание и SFZ: https://github.com/endolith/Salamander-Drumkit
-- Лицензия оригинала и обработанной выборки: **CC BY-SA 3.0** — https://creativecommons.org/licenses/by-sa/3.0/
-- Полный текст лицензии: [LICENSE.txt](./LICENSE.txt).
+- Source: [Salamander Drumkit on Internet Archive](https://archive.org/details/SalamanderDrumkit).
+- Description and SFZ: [endolith/Salamander-Drumkit](https://github.com/endolith/Salamander-Drumkit).
+- Original and processed sample license: **CC BY-SA 3.0** — [license summary](https://creativecommons.org/licenses/by-sa/3.0/).
+- Full license text: [LICENSE.txt](./LICENSE.txt).
 
-Десять стереофонических акустических записей: две бочки, два малых барабана, закрытый и открытый хай-хэт, крэш, райд и два тома.
+Ten stereo acoustic recordings: two kicks, two snares, closed and open hi-hat, crash, ride and two toms.
 
-Изменения: удалена начальная тишина с сохранением 0,5 мс перед атакой; удалена конечная тишина; хвосты ограничены 6 секундами; пики нормализованы до 0,8; плавные края 0,3 мс / 15 мс; PCM 24 bit преобразован в PCM 16 bit. Сохранены исходные 48 кГц и стерео.
+Processing: removed leading silence while keeping 0.5 ms before the attack; removed trailing silence; limited tails to 6 seconds; normalized peaks to 0.8; applied 0.3 ms / 15 ms edge fades; converted 24-bit PCM to 16-bit PCM. Original 48 kHz sample rate and stereo channels are preserved.
 
-Автор изменений: участники проекта Drum Machine. Исходные имена, контрольные суммы и параметры обработки: [manifest.json](./manifest.json). Воспроизведение обработки: `npm run samples:prepare` из корня проекта; нужны Node.js 24 и `tar` с поддержкой bzip2. Исходный архив (~370 МиБ) не входит в приложение или Docker-образ.
+Modifications by the Drum Machine contributors. Original file names, checksums and processing parameters are in [manifest.json](./manifest.json). Reproduce the processing with `npm run samples:prepare` from the project root; Node.js 24 and `tar` with bzip2 support are required. The source archive (~370 MiB) is not part of the app or Docker image.
 
-При распространении выборки сохраняйте авторство, лицензию и описание изменений. Изменённые сэмплы распространяются на условиях CC BY-SA 3.0. Лицензия сэмплов не является заявлением о лицензии всего исходного кода приложения.
+Keep attribution, the license and the description of changes when redistributing this selection. Modified samples are distributed under CC BY-SA 3.0. The sample license is not a statement about the license of the entire application's source code.

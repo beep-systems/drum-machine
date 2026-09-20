@@ -2,6 +2,11 @@ import { expect, test } from '@playwright/test'
 import { PRESETS } from '../src/model'
 import { exportLibrary } from '../src/storage'
 
+// Keep the original Russian scenarios as a regression suite; i18n.spec covers the English default.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('drum-machine:locale', 'ru'))
+})
+
 test('edit, accent, mix, save, export, import and restore without autoplay', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))

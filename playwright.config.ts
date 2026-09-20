@@ -2,6 +2,11 @@ import { defineConfig } from '@playwright/test'
 
 export default defineConfig({
   testDir: './tests',
+  testIgnore: '**/preview/**',
+  outputDir: 'test-results/dev',
+  reporter: process.env.CI
+    ? [['line'], ['html', { outputFolder: 'playwright-report/dev', open: 'never' }]]
+    : 'list',
   timeout: 30_000,
   fullyParallel: false,
   workers: 1,

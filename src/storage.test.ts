@@ -11,7 +11,7 @@ describe('browser storage', () => {
     const setItem = vi.fn()
     expect(saveState({ setItem }, state)).toBe(true)
     expect(setItem).toHaveBeenCalledWith(STORAGE_KEY, JSON.stringify(state))
-    expect(restoreState({ getItem: () => JSON.stringify(state) })).toEqual({ state, warning: '' })
+    expect(restoreState({ getItem: () => JSON.stringify(state) })).toEqual({ state, warning: null })
     expect(restoreState({ getItem: () => null }).state.session.bpm).toBe(100)
   })
   it('preserves corrupt source data and degrades gracefully on denied/quota storage', () => {
@@ -19,14 +19,14 @@ describe('browser storage', () => {
       throw new Error('QuotaExceededError')
     })
     expect(saveState({ setItem }, initialState())).toBe(false)
-    expect(restoreState({ getItem: () => '{broken' }).warning).not.toBe('')
+    expect(restoreState({ getItem: () => '{broken' }).warning).toEqual({ code: 'storageRestore' })
     expect(
       restoreState({
         getItem: () => {
           throw new Error('SecurityError')
         },
       }).warning,
-    ).not.toBe('')
+    ).toEqual({ code: 'storageRestore' })
   })
 })
 
