@@ -1,4 +1,6 @@
 export const en = {
+  kitLabel: 'Drum kit',
+  kits: { acoustic: 'Acoustic', industrial: 'Industrial' },
   language: 'Language',
   pageTitle: 'Drum Machine — Your practice partner',
   pageDescription: 'Acoustic drums for guitar practice. Rock, hard rock and metal in your browser.',
@@ -32,6 +34,7 @@ export const en = {
   presetsNote: 'Choose the feel. Set your own tempo.',
   categoriesLabel: 'Preset categories',
   categories: {
+    industrial: 'Industrial',
     all: 'All',
     basic: 'Basic',
     rock: 'Rock',
@@ -99,6 +102,11 @@ export const en = {
   saved: (name: string) => `“${name}” saved to the library.`,
   deleted: (name: string) => `“${name}” removed from the library.`,
   presets: {
+    'Industrial March': { name: 'Industrial March', description: 'Steady mechanical march.' },
+    'Electronic Rock': { name: 'Electronic Rock', description: 'Syncopated electronic rock.' },
+    'Mechanical Metal': { name: 'Mechanical Metal', description: 'Driving kicks and metallic cymbals.' },
+    'Half-time Industrial': { name: 'Half-time Industrial', description: 'Heavy half-time with fast hats.' },
+    'Industrial Gallop': { name: 'Industrial Gallop', description: 'Galloping kicks and a tom fill.' },
     'Базовый рок': { name: 'Basic rock', description: '' },
     'Хард-рок': { name: 'Hard rock', description: '' },
     'Half-time': { name: 'Half-time', description: '' },

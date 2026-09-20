@@ -2,6 +2,40 @@ import { describe, expect, it, vi } from 'vitest'
 import { initialState, PRESETS } from './model'
 import { exportLibrary, importLibrary, restoreState, saveState, STORAGE_KEY } from './storage'
 
+describe('kit compatibility', () => {
+  it('round-trips Industrial and distinguishes it from legacy acoustic music', () => {
+    const legacy = { id: 'same', pattern: PRESETS[0].pattern, bpm: 100 }
+    const electronic = { ...legacy, kitId: 'industrial' as const }
+    const library = importLibrary(exportLibrary([electronic]), [legacy])
+    expect(library).toHaveLength(2)
+    expect(library[1].kitId).toBe('industrial')
+    expect(importLibrary(exportLibrary([electronic]), library)).toEqual(library)
+    expect(importLibrary(exportLibrary([{ ...legacy, kitId: 'acoustic' }]), [legacy])).toEqual([legacy])
+    const state = initialState()
+    state.session.kitId = 'industrial'
+    state.library = library
+    expect(restoreState({ getItem: () => JSON.stringify(state) })).toEqual({ state, warning: null })
+  })
+  it('rejects invalid kit values without changing the existing library', () => {
+    const existing = [PRESETS[0]]
+    const original = JSON.stringify(existing)
+    for (const kitId of ['unknown', null, 1, {}, true]) {
+      const raw = JSON.stringify({
+        version: 1,
+        kind: 'drum-machine-library',
+        patterns: [{ ...PRESETS[0], kitId }],
+      })
+      expect(() => importLibrary(raw, existing)).toThrow()
+      const state = initialState()
+      expect(
+        restoreState({ getItem: () => JSON.stringify({ ...state, session: { ...state.session, kitId } }) })
+          .warning?.code,
+      ).toBe('storageRestore')
+    }
+    expect(JSON.stringify(existing)).toBe(original)
+  })
+})
+
 describe('browser storage', () => {
   it('round-trips a complete session', () => {
     const state = initialState()

@@ -1,0 +1,74 @@
+{
+  "source": "Original procedural synthesis in scripts/generate-industrial.mjs; no third-party samples.",
+  "license": "CC0-1.0",
+  "channels": 1,
+  "bitsPerSample": 16,
+  "peak": 0.8,
+  "processing": "Seeded noise, swept saturated sines and inharmonic partials; exponential decay; 0.5 ms attack and 15 ms end fade.",
+  "samples": [
+    {
+      "file": "kick.wav",
+      "seed": 118871,
+      "frequency": 52,
+      "frames": 31200,
+      "sampleRate": 48000,
+      "sha256": "520b769cbcd5709bd9e3f6ac69e4d09e19dcf4d9c2dff97539a0dc8fc09d9585"
+    },
+    {
+      "file": "snare.wav",
+      "seed": 118872,
+      "frequency": 185,
+      "frames": 19200,
+      "sampleRate": 48000,
+      "sha256": "62378f381a5d2b96126a14670b3620b9822a3fdfdcba86874d73fee3a47d1cc8"
+    },
+    {
+      "file": "closed-hat.wav",
+      "seed": 118873,
+      "frequency": 6200,
+      "frames": 5760,
+      "sampleRate": 48000,
+      "sha256": "57606926631c1eaf594cb48995e817bf18dd967ad0f02202a84bed48f8efb08b"
+    },
+    {
+      "file": "open-hat.wav",
+      "seed": 118874,
+      "frequency": 6200,
+      "frames": 38400,
+      "sampleRate": 48000,
+      "sha256": "b602b76033ffff38f70773ff2b33dada04bbe213773e22d8bc2545108d90ad46"
+    },
+    {
+      "file": "crash.wav",
+      "seed": 118875,
+      "frequency": 3100,
+      "frames": 115200,
+      "sampleRate": 48000,
+      "sha256": "92ddfc522e93ce50ea3d302dc4e631f4b37ba4f939290e07bd62cc272835bb71"
+    },
+    {
+      "file": "ride.wav",
+      "seed": 118876,
+      "frequency": 4300,
+      "frames": 67200,
+      "sampleRate": 48000,
+      "sha256": "959024a2f0b9bee5eab432a5e0395d783b4e489fd1bdcad089e5ab4fdce6f9d7"
+    },
+    {
+      "file": "high-tom.wav",
+      "seed": 118877,
+      "frequency": 170,
+      "frames": 24000,
+      "sampleRate": 48000,
+      "sha256": "758d4c36ccd7bae687f5ee56ed97fb49cb6ffc0b6fdc27feb5feb881db3174e2"
+    },
+    {
+      "file": "low-tom.wav",
+      "seed": 118878,
+      "frequency": 95,
+      "frames": 33600,
+      "sampleRate": 48000,
+      "sha256": "13779e91e4aca0713107bc89a4b8f8e480172d614e0bddf743b29ee9df20d271"
+    }
+  ]
+}

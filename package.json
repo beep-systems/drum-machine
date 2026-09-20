@@ -17,7 +17,8 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:preview": "playwright test --config playwright.preview.config.ts",
-    "samples:prepare": "node scripts/prepare-samples.mjs"
+    "samples:prepare": "node scripts/prepare-samples.mjs",
+    "samples:industrial": "node scripts/generate-industrial.mjs"
   },
   "dependencies": {
     "react": "^19.3.0",

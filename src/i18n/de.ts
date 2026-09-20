@@ -1,6 +1,8 @@
 import type { Dictionary } from './en'
 
 export const de: Dictionary = {
+  kitLabel: 'Schlagzeugset',
+  kits: { acoustic: 'Akustisch', industrial: 'Industrial' },
   language: 'Sprache',
   pageTitle: 'Drum Machine — Dein Übungspartner',
   pageDescription: 'Akustisches Schlagzeug zum Gitarreüben. Rock, Hardrock und Metal im Browser.',
@@ -34,6 +36,7 @@ export const de: Dictionary = {
   presetsNote: 'Wähle den Groove. Bestimme das Tempo.',
   categoriesLabel: 'Rhythmuskategorien',
   categories: {
+    industrial: 'Industrial',
     all: 'Alle',
     basic: 'Grundlagen',
     rock: 'Rock',
@@ -105,6 +108,17 @@ export const de: Dictionary = {
   saved: (name) => `„${name}“ wurde in der Bibliothek gespeichert.`,
   deleted: (name) => `„${name}“ wurde aus der Bibliothek entfernt.`,
   presets: {
+    'Industrial March': { name: 'Industrial-Marsch', description: 'Gleichmäßiger mechanischer Marsch.' },
+    'Electronic Rock': { name: 'Electronic Rock', description: 'Synkopierter Electronic Rock.' },
+    'Mechanical Metal': {
+      name: 'Mechanischer Metal',
+      description: 'Treibende Bassdrum und metallische Becken.',
+    },
+    'Half-time Industrial': {
+      name: 'Industrial Half-time',
+      description: 'Schwerer Half-time mit schnellen Hi-Hats.',
+    },
+    'Industrial Gallop': { name: 'Industrial-Galopp', description: 'Galoppierende Bassdrum mit Tom-Fill.' },
     'Базовый рок': { name: 'Rock-Grundrhythmus', description: '' },
     'Хард-рок': { name: 'Hardrock', description: '' },
     'Half-time': { name: 'Halftime', description: '' },

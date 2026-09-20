@@ -31,7 +31,7 @@ describe('musical timing', () => {
     expect(new Set(PRESETS.map((p) => p.id)).size).toBe(PRESETS.length)
     expect(new Set(PRESETS.map((p) => JSON.stringify(p.pattern.tracks))).size).toBe(PRESETS.length)
     expect(new Set(PRESETS.map((p) => p.category))).toEqual(
-      new Set(['basic', 'rock', 'hard-rock', 'metal', 'songs']),
+      new Set(['basic', 'rock', 'hard-rock', 'metal', 'songs', 'industrial']),
     )
     for (const preset of PRESETS)
       for (const track of TRACKS) {

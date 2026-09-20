@@ -31,6 +31,7 @@ const PRESET_CATEGORIES: Array<PresetCategory | 'all'> = [
   'hard-rock',
   'metal',
   'songs',
+  'industrial',
 ]
 
 function Icon({
@@ -139,13 +140,17 @@ export function App() {
     }
   }
   function selectPattern(saved: SavedPattern, name = saved.pattern.name) {
-    changeSession({ pattern: { ...structuredClone(saved.pattern), name }, bpm: saved.bpm })
+    changeSession({
+      pattern: { ...structuredClone(saved.pattern), name },
+      bpm: saved.bpm,
+      kitId: saved.kitId ?? 'acoustic',
+    })
     setTempoText(String(saved.bpm))
     setNotice(null)
   }
   function toggle() {
     if (busy) engine.stop()
-    else void engine.start(session.pattern, session.bpm, session.countIn)
+    else void engine.start(session.pattern, session.bpm, session.countIn, session.kitId)
   }
 
   useEffect(() => {
@@ -164,8 +169,8 @@ export function App() {
     engine.setMix(session.mixer, session.master)
   }, [engine, session.mixer, session.master])
   useEffect(() => {
-    engine.update(session.pattern, session.bpm)
-  }, [engine, session.pattern, session.bpm])
+    engine.update(session.pattern, session.bpm, session.kitId)
+  }, [engine, session.pattern, session.bpm, session.kitId])
   useEffect(() => {
     if (!busy) {
       setPosition({ step: -1, beat: 0, bpm: session.bpm })
@@ -195,13 +200,13 @@ export function App() {
       ) {
         event.preventDefault()
         if (engine.getSnapshot().status === 'idle' || engine.getSnapshot().status === 'error')
-          void engine.start(session.pattern, session.bpm, session.countIn)
+          void engine.start(session.pattern, session.bpm, session.countIn, session.kitId)
         else engine.stop()
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [engine, session.pattern, session.bpm, session.countIn])
+  }, [engine, session.pattern, session.bpm, session.countIn, session.kitId])
   useEffect(() => () => engine.dispose(), [engine])
   useEffect(() => {
     const flush = () => {
@@ -244,7 +249,10 @@ export function App() {
     const id = `pattern-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
     setState((old) => ({
       ...old,
-      library: [...old.library, { id, pattern, bpm: old.session.bpm }],
+      library: [
+        ...old.library,
+        { id, pattern, bpm: old.session.bpm, kitId: old.session.kitId ?? 'acoustic' },
+      ],
       session: { ...old.session, pattern },
     }))
     setSaveName('')
@@ -336,7 +344,7 @@ export function App() {
           <div className="art-ring ring-two" />
           <div className="art-stick stick-one" />
           <div className="art-stick stick-two" />
-          <span className="art-label">{text.kit}</span>
+          <span className="art-label">{text.kits[session.kitId ?? 'acoustic']}</span>
           <span className="art-cross">+</span>
         </div>
       </section>
@@ -409,15 +417,41 @@ export function App() {
               onChange={(e) => changeSession({ master: Number(e.target.value) / 100 })}
             />
           </div>
-          <label className="count-in">
-            <input
-              type="checkbox"
-              checked={session.countIn}
-              onChange={(e) => changeSession({ countIn: e.target.checked })}
-            />
-            <span className="toggle-switch" />
-            {text.countIn} <span className="subtle">{text.oneBar}</span>
-          </label>
+          <div className="playback-options">
+            <span className="sr-only" id="kit-label">
+              {text.kitLabel}
+            </span>
+            <button
+              id="drum-kit"
+              className="kit-switch"
+              type="button"
+              role="switch"
+              aria-checked={session.kitId === 'industrial'}
+              aria-labelledby="kit-label industrial-label"
+              onClick={() =>
+                changeSession({ kitId: session.kitId === 'industrial' ? 'acoustic' : 'industrial' })
+              }
+            >
+              <span className={session.kitId !== 'industrial' ? 'kit-active' : ''}>{text.kits.acoustic}</span>
+              <span className="kit-switch-track" aria-hidden="true">
+                <span />
+              </span>
+              <span id="industrial-label" className={session.kitId === 'industrial' ? 'kit-active' : ''}>
+                {text.kits.industrial}
+              </span>
+            </button>
+            <label className="count-in">
+              <input
+                type="checkbox"
+                checked={session.countIn}
+                onChange={(e) => changeSession({ countIn: e.target.checked })}
+              />
+              <span className="toggle-switch" />
+              <span className="count-in-text">
+                {text.countIn} <span className="subtle">{text.oneBar}</span>
+              </span>
+            </label>
+          </div>
         </div>
         <div className="transport-status">
           <div className={`beat-lights ${busy ? 'running' : ''}`} aria-hidden="true">
@@ -475,7 +509,9 @@ export function App() {
         <div className="presets">
           {visiblePresets.map((preset, i) => {
             const info = presetText(text, preset.id)
-            const selected = JSON.stringify(preset.pattern.tracks) === JSON.stringify(session.pattern.tracks)
+            const selected =
+              (preset.kitId ?? 'acoustic') === (session.kitId ?? 'acoustic') &&
+              JSON.stringify(preset.pattern.tracks) === JSON.stringify(session.pattern.tracks)
             return (
               <button
                 key={preset.id}
@@ -557,7 +593,7 @@ export function App() {
                 <div className="track-controls">
                   <button
                     className="instrument"
-                    onClick={() => void engine.preview(track.id)}
+                    onClick={() => void engine.preview(track.id, session.kitId)}
                     aria-label={text.previewTrack(text.tracks[track.id])}
                   >
                     <span className="instrument-code">{track.short}</span>
@@ -719,6 +755,8 @@ export function App() {
           DRUM MACHINE <span>/</span> {text.footer}
         </span>
         <span>
+          <a href="/samples/industrial/README.md">{text.kits.industrial} (CC0)</a>
+          {' · '}
           {text.samples}{' '}
           <a href="/samples/README.md" target="_blank" rel="noreferrer">
             Salamander · CC BY-SA 3.0

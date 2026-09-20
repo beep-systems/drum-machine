@@ -123,3 +123,20 @@ The bundled [Salamander Drumkit](https://github.com/endolith/Salamander-Drumkit)
 To reproduce sample preparation, run `npm run samples:prepare`; this downloads the original archive (~370 MiB) and requires `tar` with bzip2 support.
 
 The main browsers are desktop Chrome and Edge; on small screens the sequencer scrolls horizontally. Audio recognition, MIDI, guitar recording, server synchronization, other time signatures and automatic fills are outside the current version.
+
+## Industrial drums
+
+Choose Acoustic or Industrial next to the playback controls. All patterns work
+with either kit; the five Industrial presets select the electronic kit. Changes
+apply at the next two-bar boundary after audio preparation. Volume and mute
+remain immediate. Saved rhythms and v1 exports retain the optional kitId; older
+files default to Acoustic. Older app versions can read these exports but ignore
+the kit choice.
+
+Industrial sounds are generated locally with npm run samples:industrial and
+committed as WAV assets. See public/samples/industrial/README.md for provenance
+and the CC0 dedication. No sample generation or downloads occur during builds.
+
+Changing the kit, tempo or rhythm during count-in cancels the pending start and
+restarts count-in after the new audio is ready. This prevents stale audio from
+starting while another kit is loading.

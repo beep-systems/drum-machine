@@ -1,5 +1,6 @@
 import {
   initialState,
+  isKitId,
   STEPS,
   TRACKS,
   type AppState,
@@ -34,6 +35,7 @@ function isSaved(v: unknown): v is SavedPattern {
     typeof v.id === 'string' &&
     v.id.length > 0 &&
     v.id.length <= 100 &&
+    (v.kitId === undefined || isKitId(v.kitId)) &&
     isPattern(v.pattern) &&
     numberIn(v.bpm, 40, 300) &&
     Number.isInteger(v.bpm)
@@ -47,6 +49,7 @@ function isLibrary(v: unknown): v is SavedPattern[] {
 function isSession(v: unknown): v is Session {
   if (
     !object(v) ||
+    (v.kitId !== undefined && !isKitId(v.kitId)) ||
     !isPattern(v.pattern) ||
     !numberIn(v.bpm, 40, 300) ||
     !Number.isInteger(v.bpm) ||
@@ -110,7 +113,13 @@ export function importLibrary(raw: string, existing: SavedPattern[]): SavedPatte
     throw new AppError({ code: 'invalidLibrary' })
   // Import adds copies; it never silently overwrites a locally edited pattern.
   const additions = parsed.patterns.filter(
-    (p) => !existing.some((e) => JSON.stringify(e.pattern) === JSON.stringify(p.pattern) && e.bpm === p.bpm),
+    (p) =>
+      !existing.some(
+        (e) =>
+          JSON.stringify(e.pattern) === JSON.stringify(p.pattern) &&
+          e.bpm === p.bpm &&
+          (e.kitId ?? 'acoustic') === (p.kitId ?? 'acoustic'),
+      ),
   )
   if (existing.length + additions.length > 128) throw new AppError({ code: 'libraryFull' })
   const ids = new Set(existing.map((p) => p.id))
@@ -119,7 +128,12 @@ export function importLibrary(raw: string, existing: SavedPattern[]): SavedPatte
     let id = item.id
     for (let suffix = 1; ids.has(id); suffix++) id = `${item.id.slice(0, 80)}-${suffix}`
     ids.add(id)
-    result.push({ id, pattern: structuredClone(item.pattern), bpm: item.bpm })
+    result.push({
+      id,
+      pattern: structuredClone(item.pattern),
+      bpm: item.bpm,
+      ...(item.kitId ? { kitId: item.kitId } : {}),
+    })
   }
   return result
 }

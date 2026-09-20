@@ -1,4 +1,4 @@
-import { TRACKS, type Mixer, type Pattern, type TrackId } from '../model'
+import { KITS, type KitId, TRACKS, type Mixer, type Pattern, type TrackId } from '../model'
 import { audioSignature, nextBoundary, type SampleBank } from './timing'
 import { renderLoop, type RenderedLoop } from './render'
 import { AppError, problemOf, type Problem } from '../messages'
@@ -15,18 +15,18 @@ type Group = {
 }
 type EngineDependencies = {
   context?: () => AudioContext
-  load?: (ctx: AudioContext) => Promise<SampleBank>
+  load?: (ctx: AudioContext, kitId: KitId) => Promise<SampleBank>
   render?: typeof renderLoop
 }
 
-async function loadSamples(ctx: AudioContext): Promise<SampleBank> {
+async function loadSamples(ctx: AudioContext, kitId: KitId): Promise<SampleBank> {
   const entries = await Promise.all(
     TRACKS.map(
       async (track) =>
         [
           track.id,
           await Promise.all(
-            track.samples.map(async (name) => {
+            KITS[kitId][track.id].map(async (name) => {
               let data: ArrayBuffer
               try {
                 const response = await fetch(`/samples/${name}.wav`, { signal: AbortSignal.timeout(20_000) })
@@ -52,8 +52,10 @@ export class DrumEngine {
   private ctx?: AudioContext
   private master?: GainNode
   private channels = new Map<TrackId, GainNode>()
-  private bank?: SampleBank
-  private loading?: Promise<SampleBank>
+  private banks = new Map<KitId, SampleBank>()
+  private loading = new Map<KitId, Promise<SampleBank>>()
+  private previewVersion = 0
+  private previewKit: KitId = 'acoustic'
   private active?: Group
   private queued?: Group
   private groups = new Set<Group>()
@@ -63,7 +65,7 @@ export class DrumEngine {
   private renderAbort?: AbortController
   private run = 0
   private wanted = false
-  private desired?: { pattern: Pattern; bpm: number; signature: string }
+  private desired?: { pattern: Pattern; bpm: number; kitId: KitId; signature: string }
   private mix?: Mixer
   private volume = 0.65
   private listeners = new Set<() => void>()
@@ -116,19 +118,27 @@ export class DrumEngine {
     }
     return this.ctx
   }
-  private async samples(ctx: AudioContext): Promise<SampleBank> {
-    if (this.bank) return this.bank
-    if (!this.loading)
-      this.loading = this.deps
-        .load(ctx)
+  private async samples(ctx: AudioContext, kitId: KitId): Promise<SampleBank> {
+    const bank = this.banks.get(kitId)
+    if (bank) return bank
+    let loading = this.loading.get(kitId)
+    if (!loading) {
+      loading = this.deps
+        .load(ctx, kitId)
         .then((bank) => {
-          this.bank = bank
+          this.banks.set(kitId, bank)
           return bank
         })
-        .finally(() => {
-          this.loading = undefined
-        })
-    return this.loading
+        .finally(() => this.loading.delete(kitId))
+      this.loading.set(kitId, loading)
+    }
+    return loading
+  }
+  private selectPreviewKit(kitId: KitId) {
+    if (this.previewKit !== kitId) {
+      this.previewKit = kitId
+      this.previewVersion++
+    }
   }
   setMix(mixer: Mixer, master: number) {
     this.mix = mixer
@@ -140,27 +150,50 @@ export class DrumEngine {
         .get(track.id)
         ?.gain.setTargetAtTime(mixer[track.id].muted ? 0 : mixer[track.id].volume, at, 0.01)
   }
-  async start(pattern: Pattern, bpm: number, countIn: boolean) {
+  async start(pattern: Pattern, bpm: number, countIn: boolean, kitId: KitId = 'acoustic') {
     if (this.wanted) return
+    this.selectPreviewKit(kitId)
     const run = ++this.run
     this.wanted = true
-    this.desired = { pattern: structuredClone(pattern), bpm, signature: audioSignature(pattern, bpm) }
+    this.desired = {
+      pattern: structuredClone(pattern),
+      bpm,
+      kitId,
+      signature: audioSignature(pattern, bpm, kitId),
+    }
     this.emit({ status: 'loading', error: null, pending: false })
     try {
       const ctx = this.context()
       await ctx.resume()
-      const bank = await this.samples(ctx)
+      if (!this.wanted || run !== this.run) return
       while (this.wanted && run === this.run) {
         const desired: NonNullable<DrumEngine['desired']> = this.desired!
+        let bank: SampleBank
+        try {
+          bank = await this.samples(ctx, desired.kitId)
+        } catch (error) {
+          if (!this.wanted || run !== this.run) return
+          if (desired.signature !== this.desired?.signature) continue
+          throw error
+        }
+        if (!this.wanted || run !== this.run) return
+        if (desired.signature !== this.desired?.signature) continue
         this.emit({ status: 'rendering' })
         this.renderAbort = new AbortController()
-        const loop = await this.deps.render(
-          desired.pattern,
-          desired.bpm,
-          bank,
-          ctx.sampleRate,
-          this.renderAbort.signal,
-        )
+        let loop: RenderedLoop
+        try {
+          loop = await this.deps.render(
+            desired.pattern,
+            desired.bpm,
+            bank,
+            ctx.sampleRate,
+            this.renderAbort.signal,
+          )
+        } catch (error) {
+          if (!this.wanted || run !== this.run) return
+          if (desired.signature !== this.desired?.signature) continue
+          throw error
+        }
         if (!this.wanted || run !== this.run) return
         if (desired.signature !== this.desired?.signature) continue
         const beginning = ctx.currentTime + 0.06
@@ -174,27 +207,55 @@ export class DrumEngine {
       if (run === this.run && this.wanted) this.fail(error)
     }
   }
-  update(pattern: Pattern, bpm: number) {
-    const signature = audioSignature(pattern, bpm)
+  update(pattern: Pattern, bpm: number, kitId: KitId = 'acoustic') {
+    this.selectPreviewKit(kitId)
+    const signature = audioSignature(pattern, bpm, kitId)
     if (signature === this.desired?.signature) return
-    this.desired = { pattern: structuredClone(pattern), bpm, signature }
-    if (!this.wanted || !this.active || !this.bank || !this.ctx) return
+    this.desired = { pattern: structuredClone(pattern), bpm, kitId, signature }
+    if (!this.wanted || !this.active || !this.ctx) return
+    // A count-in has future sources already scheduled. Withdraw them now so
+    // a slow load cannot let an obsolete kit or tempo start playing.
+    if (this.snapshot.status === 'countin' && this.active.start > this.ctx.currentTime) {
+      this.stop()
+      void this.start(pattern, bpm, true, kitId)
+      return
+    }
     this.promote()
     const version = ++this.version
     const run = this.run
     this.renderAbort?.abort()
     this.renderAbort = new AbortController()
     this.emit({ pending: true })
-    void this.deps
-      .render(pattern, bpm, this.bank, this.ctx.sampleRate, this.renderAbort.signal)
+    // Withdraw an obsolete queued change while the replacement is loading.
+    if (this.queued) {
+      this.cancelGroup(this.queued)
+      this.queued = undefined
+      for (const gate of this.active.gates) {
+        gate.gain.cancelScheduledValues(this.ctx.currentTime)
+        gate.gain.setValueAtTime(1, this.ctx.currentTime)
+      }
+    }
+    const ctx = this.ctx
+    const signal = this.renderAbort.signal
+    const render = (bank: SampleBank) => this.deps.render(pattern, bpm, bank, ctx.sampleRate, signal)
+    const cached = this.banks.get(kitId)
+    const prepared = cached
+      ? render(cached)
+      : this.samples(ctx, kitId).then((bank) => {
+          if (version !== this.version || run !== this.run || !this.wanted) return null
+          return render(bank)
+        })
+    void prepared
       .then((loop) => {
-        if (version !== this.version || run !== this.run || !this.wanted || !this.ctx) return
+        if (!loop || version !== this.version || run !== this.run || !this.wanted || !this.ctx) return
         this.promote()
         const current = this.active!
         const at =
           this.queued && this.queued.start > this.ctx.currentTime + 0.04
             ? this.queued.start
-            : nextBoundary(this.ctx.currentTime, current.start, current.duration)
+            : current.start > this.ctx.currentTime + 0.04
+              ? current.start
+              : nextBoundary(this.ctx.currentTime, current.start, current.duration)
         if (this.queued) this.cancelGroup(this.queued)
         // Gain automation can be rescheduled; stopping an active source cannot be undone.
         for (const gate of current.gates) {
@@ -311,13 +372,16 @@ export class DrumEngine {
       error: problemOf(error, { code: 'audioFailed' }),
     })
   }
-  async preview(track: TrackId) {
+  async preview(track: TrackId, kitId: KitId = 'acoustic') {
+    this.selectPreviewKit(kitId)
+    const previewVersion = this.previewVersion
     const run = this.run
     try {
       const ctx = this.context()
       await ctx.resume()
-      const bank = await this.samples(ctx)
-      if (run !== this.run) return
+      if (run !== this.run || previewVersion !== this.previewVersion) return
+      const bank = await this.samples(ctx, kitId)
+      if (run !== this.run || previewVersion !== this.previewVersion) return
       if (track === 'closedHat' || track === 'openHat') this.hatPreview?.stop()
       const source = ctx.createBufferSource()
       source.buffer = bank[track][0]
@@ -331,7 +395,7 @@ export class DrumEngine {
         if (this.hatPreview === source) this.hatPreview = undefined
       }
     } catch (error) {
-      if (run === this.run) this.fail(error)
+      if (run === this.run && previewVersion === this.previewVersion) this.fail(error)
     }
   }
   dispose() {

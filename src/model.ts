@@ -1,28 +1,58 @@
 export const TRACKS = [
-  { id: 'kick', name: 'Бочка', short: 'BD', color: '#c2ef72', gain: 0.9, samples: ['kick-1', 'kick-2'] },
-  { id: 'snare', name: 'Малый', short: 'SN', color: '#e8bb7d', gain: 0.8, samples: ['snare-1', 'snare-2'] },
+  { id: 'kick', name: 'Бочка', short: 'BD', color: '#c2ef72', gain: 0.9 },
+  { id: 'snare', name: 'Малый', short: 'SN', color: '#e8bb7d', gain: 0.8 },
   {
     id: 'closedHat',
     name: 'Закрытый хэт',
     short: 'CH',
     color: '#8bbfb0',
     gain: 0.52,
-    samples: ['closed-hat'],
   },
-  { id: 'openHat', name: 'Открытый хэт', short: 'OH', color: '#8bbfb0', gain: 0.48, samples: ['open-hat'] },
-  { id: 'crash', name: 'Крэш', short: 'CR', color: '#b5a4d8', gain: 0.55, samples: ['crash'] },
-  { id: 'ride', name: 'Райд', short: 'RD', color: '#b5a4d8', gain: 0.55, samples: ['ride'] },
-  { id: 'highTom', name: 'Высокий том', short: 'HT', color: '#d49688', gain: 0.72, samples: ['high-tom'] },
-  { id: 'lowTom', name: 'Низкий том', short: 'LT', color: '#d49688', gain: 0.8, samples: ['low-tom'] },
+  { id: 'openHat', name: 'Открытый хэт', short: 'OH', color: '#8bbfb0', gain: 0.48 },
+  { id: 'crash', name: 'Крэш', short: 'CR', color: '#b5a4d8', gain: 0.55 },
+  { id: 'ride', name: 'Райд', short: 'RD', color: '#b5a4d8', gain: 0.55 },
+  { id: 'highTom', name: 'Высокий том', short: 'HT', color: '#d49688', gain: 0.72 },
+  { id: 'lowTom', name: 'Низкий том', short: 'LT', color: '#d49688', gain: 0.8 },
 ] as const
 
 export type TrackId = (typeof TRACKS)[number]['id']
 export type Step = 0 | 1 | 2
 export type Pattern = { name: string; tracks: Record<TrackId, Step[]> }
 export type Mixer = Record<TrackId, { volume: number; muted: boolean }>
-export type Session = { pattern: Pattern; bpm: number; master: number; countIn: boolean; mixer: Mixer }
-export type SavedPattern = { id: string; pattern: Pattern; bpm: number }
-export type PresetCategory = 'basic' | 'rock' | 'hard-rock' | 'metal' | 'songs'
+export type KitId = 'acoustic' | 'industrial'
+export const isKitId = (v: unknown): v is KitId => v === 'acoustic' || v === 'industrial'
+export const KITS: Record<KitId, Record<TrackId, string[]>> = {
+  acoustic: {
+    kick: ['kick-1', 'kick-2'],
+    snare: ['snare-1', 'snare-2'],
+    closedHat: ['closed-hat'],
+    openHat: ['open-hat'],
+    crash: ['crash'],
+    ride: ['ride'],
+    highTom: ['high-tom'],
+    lowTom: ['low-tom'],
+  },
+  industrial: {
+    kick: ['industrial/kick'],
+    snare: ['industrial/snare'],
+    closedHat: ['industrial/closed-hat'],
+    openHat: ['industrial/open-hat'],
+    crash: ['industrial/crash'],
+    ride: ['industrial/ride'],
+    highTom: ['industrial/high-tom'],
+    lowTom: ['industrial/low-tom'],
+  },
+}
+export type Session = {
+  kitId?: KitId
+  pattern: Pattern
+  bpm: number
+  master: number
+  countIn: boolean
+  mixer: Mixer
+}
+export type SavedPattern = { kitId?: KitId; id: string; pattern: Pattern; bpm: number }
+export type PresetCategory = 'basic' | 'rock' | 'hard-rock' | 'metal' | 'songs' | 'industrial'
 export type Preset = SavedPattern & { category: PresetCategory; description: string }
 export type AppState = { version: 1; session: Session; library: SavedPattern[] }
 export const STEPS = 32
@@ -226,7 +256,42 @@ const EXTRA_PRESETS: Preset[] = [
   ),
 ]
 
-export const PRESETS: Preset[] = [...BASE_PRESETS, ...EXTRA_PRESETS]
+const INDUSTRIAL_PRESETS = [
+  preset('Industrial March', 110, 'industrial', {
+    kick: every(4),
+    snare: [4, 12, 20, 28],
+    closedHat: every(2),
+  }),
+  preset('Electronic Rock', 120, 'industrial', {
+    kick: [0, 3, 8, 10, 16, 19, 24, 27],
+    snare: [4, 12, 20, 28],
+    closedHat: every(2).filter((s) => s !== 14 && s !== 30),
+    openHat: [14, 30],
+    crash: [0],
+  }),
+  preset('Mechanical Metal', 150, 'industrial', {
+    kick: [...every(2), 11, 27, 31],
+    snare: [4, 12, 20, 28],
+    ride: every(2),
+    crash: [0, 16],
+  }),
+  preset('Half-time Industrial', 90, 'industrial', {
+    kick: [0, 6, 16, 23],
+    snare: [8, 24],
+    closedHat: every(1),
+  }),
+  preset('Industrial Gallop', 135, 'industrial', {
+    kick: every(4).flatMap((s) => [s, s + 2, s + 3]),
+    snare: [4, 12, 20, 28],
+    closedHat: every(2).filter((s) => s < 26),
+    highTom: [26, 28],
+    lowTom: [29, 30, 31],
+  }),
+].map((p) => {
+  p.kitId = 'industrial'
+  return p
+})
+export const PRESETS: Preset[] = [...BASE_PRESETS, ...EXTRA_PRESETS, ...INDUSTRIAL_PRESETS]
 
 export function initialState(patternName = PRESETS[0].pattern.name): AppState {
   return {

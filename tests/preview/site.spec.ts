@@ -24,6 +24,13 @@ test('built site serves bundled assets, samples and attribution', async ({ page,
   expect(manifestResponse.ok()).toBe(true)
   const manifest = (await manifestResponse.json()) as { samples: { file: string }[] }
   expect(manifest.samples).toHaveLength(10)
+  const industrial = await (await request.get('/samples/industrial/manifest.json')).json()
+  expect(industrial.samples).toHaveLength(8)
+  for (const { file } of industrial.samples) {
+    const sample = await request.get(`/samples/industrial/${file}`)
+    expect(sample.ok()).toBe(true)
+    expect((await sample.body()).subarray(0, 4).toString()).toBe('RIFF')
+  }
   for (const { file } of manifest.samples) {
     const sample = await request.get(`/samples/${file}`)
     expect(sample.ok()).toBe(true)
@@ -41,11 +48,12 @@ for (const [locale, play, stop, playing] of [
 ]) {
   test(`production playback and language persistence: ${locale}`, async ({ page }) => {
     await page.goto('/')
-    await page.getByRole('combobox').selectOption(locale)
+    await page.locator('select').first().selectOption(locale)
     await page.reload()
     await expect(page.locator('html')).toHaveAttribute('lang', locale)
-    await expect(page.getByRole('combobox')).toHaveValue(locale)
+    await expect(page.locator('select').first()).toHaveValue(locale)
     await page.getByRole('checkbox').uncheck()
+    await page.getByRole('switch').check()
     await page.getByRole('button', { name: play, exact: true }).click()
     await expect(page.getByText(playing, { exact: true })).toBeVisible()
     await expect(page.locator('.step.current')).toHaveCount(8)

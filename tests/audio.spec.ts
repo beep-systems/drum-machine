@@ -76,23 +76,27 @@ test('all presets render real samples with energy, including 300 BPM double kick
     const { renderLoop } = (await import(
       /* @vite-ignore */ renderPath
     )) as typeof import('../src/audio/render')
-    const { PRESETS, TRACKS } = (await import(/* @vite-ignore */ modelPath)) as typeof import('../src/model')
+    const { PRESETS, TRACKS, KITS } = (await import(
+      /* @vite-ignore */ modelPath
+    )) as typeof import('../src/model')
     const decoder = new OfflineAudioContext(2, 1, 48000)
-    const bank = Object.fromEntries(
-      await Promise.all(
-        TRACKS.map(async (t) => [
-          t.id,
-          await Promise.all(
-            t.samples.map(async (file) =>
-              decoder.decodeAudioData(await (await fetch(`/samples/${file}.wav`)).arrayBuffer()),
+    const loadBank = async (kit: import('../src/model').KitId) =>
+      Object.fromEntries(
+        await Promise.all(
+          TRACKS.map(async (t) => [
+            t.id,
+            await Promise.all(
+              KITS[kit][t.id].map(async (file) =>
+                decoder.decodeAudioData(await (await fetch(`/samples/${file}.wav`)).arrayBuffer()),
+              ),
             ),
-          ),
-        ]),
-      ),
-    ) as import('../src/audio/timing').SampleBank
+          ]),
+        ),
+      ) as import('../src/audio/timing').SampleBank
+    const banks = { acoustic: await loadBank('acoustic'), industrial: await loadBank('industrial') }
     const output = []
     for (const preset of [...PRESETS, { ...PRESETS[3], bpm: 300 }]) {
-      const loop = await renderLoop(preset.pattern, preset.bpm, bank, 48000)
+      const loop = await renderLoop(preset.pattern, preset.bpm, banks[preset.kitId ?? 'acoustic'], 48000)
       let energy = 0,
         finite = true
       for (const t of TRACKS)

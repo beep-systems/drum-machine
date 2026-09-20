@@ -1,4 +1,4 @@
-import { STEPS, type Pattern, type TrackId } from '../model'
+import { STEPS, type KitId, type Pattern, type TrackId } from '../model'
 
 export function cycleFrames(bpm: number, sampleRate: number): number {
   return Math.round((480 / bpm) * sampleRate)
@@ -16,7 +16,7 @@ export function nextHatChoke(pattern: Pattern, step: number): number | null {
   }
   return null
 }
-export function audioSignature(pattern: Pattern, bpm: number): string {
-  return JSON.stringify([bpm, pattern.tracks])
+export function audioSignature(pattern: Pattern, bpm: number, kitId: KitId = 'acoustic'): string {
+  return JSON.stringify([bpm, pattern.tracks, kitId])
 }
 export type SampleBank = Record<TrackId, AudioBuffer[]>

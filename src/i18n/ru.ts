@@ -1,6 +1,8 @@
 import type { Dictionary } from './en'
 
 export const ru: Dictionary = {
+  kitLabel: 'Набор ударных',
+  kits: { acoustic: 'Акустический', industrial: 'Industrial' },
   language: 'Язык',
   pageTitle: 'Drum Machine — Твой напарник по репетиции',
   pageDescription: 'Акустические ударные для занятий на гитаре. Рок, хард-рок и метал в браузере.',
@@ -34,6 +36,7 @@ export const ru: Dictionary = {
   presetsNote: 'Выбери характер. Темп — за тобой.',
   categoriesLabel: 'Категории пресетов',
   categories: {
+    industrial: 'Industrial',
     all: 'Все',
     basic: 'Базовые',
     rock: 'Рок',
@@ -100,6 +103,20 @@ export const ru: Dictionary = {
   saved: (name) => `«${name}» сохранён в библиотеке.`,
   deleted: (name) => `Ритм «${name}» удалён из библиотеки.`,
   presets: {
+    'Industrial March': { name: 'Индустриальный марш', description: 'Ровный механический марш.' },
+    'Electronic Rock': { name: 'Электронный рок', description: 'Синкопированный электронный рок.' },
+    'Mechanical Metal': {
+      name: 'Механический метал',
+      description: 'Напористая бочка и металлические тарелки.',
+    },
+    'Half-time Industrial': {
+      name: 'Индустриальный half-time',
+      description: 'Тяжёлый ритм half-time с быстрыми хэтами.',
+    },
+    'Industrial Gallop': {
+      name: 'Индустриальный галоп',
+      description: 'Галопирующая бочка с томовым переходом.',
+    },
     'Базовый рок': { name: 'Базовый рок', description: '' },
     'Хард-рок': { name: 'Хард-рок', description: '' },
     'Half-time': { name: 'Халф-тайм', description: '' },

@@ -85,6 +85,128 @@ function setup(render = vi.fn(async (_p, bpm: number) => loop(bpm))) {
 }
 
 describe('audio lifecycle', () => {
+  it('withdraws an obsolete queued kit while another load is pending', async () => {
+    const { engine, ctx, render } = setup()
+    await engine.start(PRESETS[0].pattern, 100, false)
+    ctx.currentTime = 1
+    engine.update(PRESETS[0].pattern, 120, 'industrial')
+    await flush()
+    expect(ctx.sources).toHaveLength(16)
+    const delayed = deferred<RenderedLoop>()
+    render.mockImplementationOnce(() => delayed.promise)
+    engine.update(PRESETS[1].pattern, 150, 'acoustic')
+    for (const source of ctx.sources.slice(8)) expect(source.stop).toHaveBeenCalled()
+    engine.stop()
+    delayed.reject(new Error('obsolete render'))
+    await flush()
+    expect(engine.getSnapshot().status).toBe('idle')
+  })
+  it('stops on an active kit error without automatically retrying', async () => {
+    const ctx = new Context()
+    const load = vi.fn(async (_ctx: AudioContext, kit: string) => {
+      if (kit === 'industrial') throw new Error('missing')
+      return bank
+    })
+    const engine = new DrumEngine({
+      context: () => ctx as unknown as AudioContext,
+      load,
+      render: async () => loop(),
+    })
+    await engine.start(PRESETS[0].pattern, 100, false)
+    ctx.currentTime = 1
+    engine.update(PRESETS[0].pattern, 100, 'industrial')
+    await flush()
+    expect(engine.getSnapshot().status).toBe('error')
+    engine.update(PRESETS[1].pattern, 150, 'industrial')
+    await flush()
+    expect(load).toHaveBeenCalledTimes(2)
+    for (const source of ctx.sources) expect(source.stop).toHaveBeenCalled()
+  })
+  it('does not play a delayed preview after switching kits', async () => {
+    const ctx = new Context()
+    const pending = deferred<SampleBank>()
+    const engine = new DrumEngine({
+      context: () => ctx as unknown as AudioContext,
+      load: () => pending.promise,
+    })
+    const preview = engine.preview('kick', 'industrial')
+    await flush()
+    engine.update(PRESETS[0].pattern, 100, 'acoustic')
+    pending.resolve(bank)
+    await preview
+    expect(ctx.sources).toHaveLength(0)
+  })
+  it('loads only requested kits, ignores an obsolete load error and reuses cached audio', async () => {
+    const ctx = new Context()
+    const electronic = deferred<SampleBank>()
+    const load = vi.fn((_ctx: AudioContext, kit: string) =>
+      kit === 'industrial' ? electronic.promise : Promise.resolve(bank),
+    )
+    const engine = new DrumEngine({
+      context: () => ctx as unknown as AudioContext,
+      load,
+      render: async () => loop(),
+    })
+    await engine.start(PRESETS[0].pattern, 100, false)
+    ctx.currentTime = 1
+    engine.update(PRESETS[0].pattern, 100, 'industrial')
+    engine.update(PRESETS[0].pattern, 100, 'acoustic')
+    electronic.reject(new Error('obsolete'))
+    await flush()
+    expect(load.mock.calls.map((call) => call[1])).toEqual(['acoustic', 'industrial'])
+    expect(engine.getSnapshot().status).toBe('playing')
+    expect(ctx.sources).toHaveLength(16)
+  })
+  it('uses the newest kit and tempo when startup loading becomes obsolete', async () => {
+    const ctx = new Context()
+    const acoustic = deferred<SampleBank>()
+    const electronic = {} as SampleBank
+    const render = vi.fn(async (_p, bpm: number) => loop(bpm))
+    const engine = new DrumEngine({
+      context: () => ctx as unknown as AudioContext,
+      load: async (_ctx, kit) => (kit === 'acoustic' ? acoustic.promise : electronic),
+      render,
+    })
+    const start = engine.start(PRESETS[0].pattern, 100, false)
+    await flush()
+    engine.update(PRESETS[1].pattern, 150, 'industrial')
+    acoustic.reject(new Error('obsolete'))
+    await start
+    expect(render).toHaveBeenCalledTimes(1)
+    expect(render.mock.calls[0][1]).toBe(150)
+    expect(engine.position().bpm).toBe(150)
+    expect(engine.getSnapshot().status).toBe('playing')
+  })
+  it('cancels a kit load and pending preview on Stop', async () => {
+    const ctx = new Context()
+    const electronic = deferred<SampleBank>()
+    const engine = new DrumEngine({
+      context: () => ctx as unknown as AudioContext,
+      load: async (_ctx, kit) => (kit === 'industrial' ? electronic.promise : bank),
+      render: async () => loop(),
+    })
+    await engine.start(PRESETS[0].pattern, 100, false)
+    engine.update(PRESETS[0].pattern, 100, 'industrial')
+    const preview = engine.preview('kick', 'industrial')
+    await flush()
+    engine.stop()
+    electronic.resolve(bank)
+    await preview
+    await flush()
+    expect(ctx.sources).toHaveLength(8)
+    expect(engine.getSnapshot().status).toBe('idle')
+  })
+  it('withdraws future sources and restarts count-in with the new kit', async () => {
+    const { engine, ctx } = setup()
+    await engine.start(PRESETS[0].pattern, 100, true)
+    ctx.currentTime = 0.5
+    engine.update(PRESETS[0].pattern, 100, 'industrial')
+    await flush()
+    expect(ctx.sources).toHaveLength(16)
+    for (const source of ctx.sources.slice(8)) expect(source.start).toHaveBeenCalledWith(2.96, 0)
+    expect(ctx.oscillators).toHaveLength(8)
+    for (const source of ctx.sources.slice(0, 8)) expect(source.stop).toHaveBeenCalled()
+  })
   it('never starts if stopped while loading samples', async () => {
     const ctx = new Context()
     const load = deferred<SampleBank>()
