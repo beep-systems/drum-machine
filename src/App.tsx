@@ -14,11 +14,21 @@ import {
   PRESETS,
   TRACKS,
   type AppState,
+  type PresetCategory,
   type SavedPattern,
   type Session,
   type TrackId,
 } from './model'
 import { exportLibrary, importLibrary, restoreState, saveState } from './storage'
+
+const PRESET_CATEGORIES: Array<{ id: PresetCategory | 'all'; label: string }> = [
+  { id: 'all', label: '\u0412\u0441\u0435' },
+  { id: 'basic', label: '\u0411\u0430\u0437\u043e\u0432\u044b\u0435' },
+  { id: 'rock', label: '\u0420\u043e\u043a' },
+  { id: 'hard-rock', label: '\u0425\u0430\u0440\u0434-\u0440\u043e\u043a' },
+  { id: 'metal', label: '\u041c\u0435\u0442\u0430\u043b' },
+  { id: 'songs', label: '\u0412 \u0441\u0442\u0438\u043b\u0435 \u043f\u0435\u0441\u0435\u043d' },
+]
 
 function Icon({
   name,
@@ -104,12 +114,15 @@ export function App() {
   const [notice, setNotice] = useState('')
   const [saveName, setSaveName] = useState('')
   const [focusedCell, setFocusedCell] = useState(0)
+  const [presetCategory, setPresetCategory] = useState<PresetCategory | 'all'>('all')
   const [tempoText, setTempoText] = useState(String(state.session.bpm))
   const fileInput = useRef<HTMLInputElement>(null)
   const grid = useRef<HTMLDivElement>(null)
   const session = state.session
   const busy = sound.status !== 'idle' && sound.status !== 'error'
   const preparing = sound.status === 'loading' || sound.status === 'rendering'
+  const visiblePresets =
+    presetCategory === 'all' ? PRESETS : PRESETS.filter((preset) => preset.category === presetCategory)
 
   function changeSession(change: Partial<Session>) {
     setState((old) => ({ ...old, session: { ...old.session, ...change } }))
@@ -431,8 +444,20 @@ export function App() {
           </h2>
           <span className="section-note">Выбери характер. Темп — за тобой.</span>
         </div>
+        <div className="preset-filters" role="group" aria-label="Preset categories">
+          {PRESET_CATEGORIES.map((category) => (
+            <button
+              key={category.id}
+              className={`preset-filter ${presetCategory === category.id ? 'selected' : ''}`}
+              onClick={() => setPresetCategory(category.id)}
+              aria-pressed={presetCategory === category.id}
+            >
+              {category.label}
+            </button>
+          ))}
+        </div>
         <div className="presets">
-          {PRESETS.map((preset, i) => {
+          {visiblePresets.map((preset, i) => {
             const selected = JSON.stringify(preset.pattern.tracks) === JSON.stringify(session.pattern.tracks)
             return (
               <button
@@ -446,6 +471,7 @@ export function App() {
                   <span>{preset.bpm} BPM</span>
                 </span>
                 <strong>{preset.pattern.name}</strong>
+                {preset.description && <small className="preset-description">{preset.description}</small>}
                 <span className="mini-pattern" aria-hidden="true">
                   {Array.from({ length: 16 }, (_, s) => (
                     <i

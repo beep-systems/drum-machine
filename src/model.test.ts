@@ -26,10 +26,19 @@ describe('musical timing', () => {
     expect(nextHatChoke(pattern, 30)).toBe(0)
     expect(nextHatChoke(emptyPattern('empty'), 4)).toBeNull()
   })
-  it('ships independent valid patterns and six distinct grooves', () => {
-    expect(new Set(PRESETS.map((p) => JSON.stringify(p.pattern.tracks))).size).toBe(6)
+  it('ships independent valid categorized presets', () => {
+    expect(PRESETS.length).toBeGreaterThanOrEqual(20)
+    expect(new Set(PRESETS.map((p) => p.id)).size).toBe(PRESETS.length)
+    expect(new Set(PRESETS.map((p) => JSON.stringify(p.pattern.tracks))).size).toBe(PRESETS.length)
+    expect(new Set(PRESETS.map((p) => p.category))).toEqual(
+      new Set(['basic', 'rock', 'hard-rock', 'metal', 'songs']),
+    )
     for (const preset of PRESETS)
-      for (const track of TRACKS) expect(preset.pattern.tracks[track.id]).toHaveLength(32)
+      for (const track of TRACKS) {
+        expect(preset.pattern.tracks[track.id]).toHaveLength(32)
+        expect(preset.bpm).toBeGreaterThanOrEqual(40)
+        expect(preset.bpm).toBeLessThanOrEqual(300)
+      }
     expect(PRESETS[3].pattern.tracks.kick.every(Boolean)).toBe(true)
     const clone = structuredClone(PRESETS[0].pattern)
     clone.tracks.kick[0] = 0

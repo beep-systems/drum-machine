@@ -22,6 +22,8 @@ export type Pattern = { name: string; tracks: Record<TrackId, Step[]> }
 export type Mixer = Record<TrackId, { volume: number; muted: boolean }>
 export type Session = { pattern: Pattern; bpm: number; master: number; countIn: boolean; mixer: Mixer }
 export type SavedPattern = { id: string; pattern: Pattern; bpm: number }
+export type PresetCategory = 'basic' | 'rock' | 'hard-rock' | 'metal' | 'songs'
+export type Preset = SavedPattern & { category: PresetCategory; description: string }
 export type AppState = { version: 1; session: Session; library: SavedPattern[] }
 export const STEPS = 32
 
@@ -32,17 +34,34 @@ export function emptyPattern(name: string): Pattern {
   }
 }
 
-function preset(name: string, bpm: number, hits: Partial<Record<TrackId, number[]>>): SavedPattern {
+function preset(
+  name: string,
+  bpm: number,
+  categoryOrHits: PresetCategory | Partial<Record<TrackId, number[]>>,
+  hitsOrDescription: Partial<Record<TrackId, number[]>> | string = {},
+  description = '',
+): Preset {
+  const category = typeof categoryOrHits === 'string' ? categoryOrHits : 'basic'
+  const hits =
+    typeof categoryOrHits === 'string'
+      ? (hitsOrDescription as Partial<Record<TrackId, number[]>>)
+      : categoryOrHits
+  const note = typeof categoryOrHits === 'string' ? description : ''
   const pattern = emptyPattern(name)
   for (const track of TRACKS) {
     for (const step of hits[track.id] ?? []) pattern.tracks[track.id][step] = 1
   }
   for (const step of [0, 16]) if (pattern.tracks.kick[step]) pattern.tracks.kick[step] = 2
-  return { id: name, bpm, pattern }
+  const result = { id: name, bpm, pattern } as Preset
+  Object.defineProperties(result, {
+    category: { value: category, enumerable: false },
+    description: { value: note, enumerable: false },
+  })
+  return result
 }
 const every = (n: number) => Array.from({ length: STEPS / n }, (_, i) => i * n)
 
-export const PRESETS = [
+const BASE_PRESETS = [
   preset('Базовый рок', 100, { kick: [0, 8, 16, 24, 26], snare: [4, 12, 20, 28], closedHat: every(2) }),
   preset('Хард-рок', 120, {
     kick: [0, 3, 8, 10, 16, 19, 24, 26],
@@ -68,6 +87,146 @@ export const PRESETS = [
     crash: [0],
   }),
 ]
+
+const EXTRA_PRESETS: Preset[] = [
+  preset('Straight Rock', 96, 'rock', {
+    kick: [0, 8, 16, 24],
+    snare: [4, 12, 20, 28],
+    closedHat: every(2),
+    crash: [0, 16],
+  }),
+  preset('Rock Syncopation', 108, 'rock', {
+    kick: [0, 6, 8, 16, 22, 24],
+    snare: [4, 12, 20, 28],
+    closedHat: every(2),
+    openHat: [14, 30],
+  }),
+  preset('Rock Ballad', 72, 'rock', {
+    kick: [0, 10, 16, 22],
+    snare: [8, 24],
+    closedHat: every(2),
+    crash: [0],
+  }),
+  preset('Shuffle Rock', 112, 'rock', {
+    kick: [0, 6, 8, 16, 22, 24],
+    snare: [4, 12, 20, 28],
+    ride: every(2),
+  }),
+  preset('Hard Rock Groove', 126, 'hard-rock', {
+    kick: [0, 3, 8, 10, 16, 19, 24, 27],
+    snare: [4, 12, 20, 28],
+    closedHat: every(2),
+    crash: [0, 16],
+  }),
+  preset('Gallop', 132, 'hard-rock', {
+    kick: [0, 2, 4, 8, 10, 12, 16, 18, 20, 24, 26, 28],
+    snare: [4, 12, 20, 28],
+    ride: every(2),
+  }),
+  preset('Tom Transition', 118, 'hard-rock', {
+    kick: [0, 8, 16, 24],
+    snare: [4, 12, 20],
+    closedHat: every(2),
+    highTom: [26, 28, 30],
+    lowTom: [27, 29, 31],
+  }),
+  preset('Metal March', 150, 'metal', {
+    kick: [0, 4, 8, 12, 16, 20, 24, 28],
+    snare: [4, 12, 20, 28],
+    ride: every(2),
+    crash: [0, 16],
+  }),
+  preset('Melodic Metal', 156, 'metal', {
+    kick: [0, 3, 8, 11, 16, 19, 24, 27],
+    snare: [4, 12, 20, 28],
+    closedHat: every(2),
+    crash: [0, 16],
+  }),
+  preset('Death Metal', 190, 'metal', {
+    kick: every(2),
+    snare: every(4).map((s) => s + 2),
+    ride: every(2),
+    crash: [0],
+  }),
+  preset('Tom Finale', 170, 'metal', {
+    kick: [0, 4, 8, 12, 16, 20, 24],
+    snare: [4, 12, 20],
+    ride: every(2),
+    highTom: [26, 28, 30],
+    lowTom: [27, 29, 31],
+  }),
+  preset(
+    'Stadium Rock Style',
+    104,
+    'songs',
+    { kick: [0, 8, 16, 24], snare: [4, 12, 20, 28], closedHat: every(2), crash: [0, 8, 16, 24] },
+    'Song-style interpretation, not an audio transcription.',
+  ),
+  preset(
+    'Hard Rock Riff Style',
+    116,
+    'songs',
+    { kick: [0, 3, 8, 10, 16, 19, 24, 26], snare: [4, 12, 20, 28], closedHat: every(2), openHat: [14, 30] },
+    'Song-style interpretation of riff-driven hard rock.',
+  ),
+  preset(
+    'Blues Rock Style',
+    92,
+    'songs',
+    { kick: [0, 6, 8, 16, 22, 24], snare: [4, 12, 20, 28], ride: every(2), crash: [0] },
+    'Song-style interpretation of a blues-rock groove.',
+  ),
+  preset(
+    'Classic Metal Style',
+    144,
+    'songs',
+    { kick: [0, 4, 8, 12, 16, 20, 24, 28], snare: [4, 12, 20, 28], closedHat: every(2), crash: [0, 16] },
+    'Song-style interpretation of classic metal.',
+  ),
+  preset(
+    'Thrash Metal Style',
+    184,
+    'songs',
+    { kick: every(2), snare: [4, 12, 20, 28], ride: every(2), crash: [0, 16] },
+    'Song-style interpretation of thrash metal.',
+  ),
+  preset(
+    'Punk Rock Style',
+    178,
+    'songs',
+    { kick: [0, 8, 16, 24], snare: [4, 12, 20, 28], closedHat: every(2), crash: every(4) },
+    'Song-style interpretation of straight punk rock.',
+  ),
+  preset(
+    'Prog Metal Style',
+    128,
+    'songs',
+    { kick: [0, 3, 7, 8, 13, 16, 19, 23, 24, 29], snare: [4, 12, 20, 28], ride: every(2), highTom: [14, 30] },
+    'Song-style interpretation of a syncopated prog-metal groove.',
+  ),
+  preset(
+    'Doom Metal Style',
+    68,
+    'songs',
+    { kick: [0, 8, 16, 24], snare: [8, 24], closedHat: every(4), crash: [0, 16] },
+    'Song-style interpretation of a slow heavy groove.',
+  ),
+  preset(
+    'Alternative Rock Style',
+    110,
+    'songs',
+    {
+      kick: [0, 6, 8, 16, 22, 24],
+      snare: [4, 12, 20, 28],
+      closedHat: every(2),
+      openHat: [14, 30],
+      crash: [0],
+    },
+    'Song-style interpretation of alternative rock.',
+  ),
+]
+
+export const PRESETS: Preset[] = [...BASE_PRESETS, ...EXTRA_PRESETS]
 
 export function initialState(): AppState {
   return {

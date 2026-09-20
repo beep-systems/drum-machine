@@ -480,6 +480,27 @@ h2 {
   gap: 10px;
   margin-bottom: 29px;
 }
+.preset-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: -7px 0 14px;
+}
+.preset-filter {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  padding: 6px 11px;
+  font: inherit;
+  font-size: 11px;
+}
+.preset-filter:hover,
+.preset-filter.selected {
+  border-color: #7f9b55;
+  background: #2b3520;
+  color: #d5f4a9;
+}
 .preset {
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -515,6 +536,14 @@ h2 {
   display: block;
   white-space: nowrap;
   letter-spacing: -0.1px;
+}
+.preset-description {
+  display: block;
+  min-height: 28px;
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
 }
 .preset.selected strong {
   color: #d5f4a9;
